@@ -1,7 +1,12 @@
 # flybrain — ショウジョウバエ全脳をPCで動かす
 
 **▶ ブラウザで今すぐ遊ぶ: https://qp-hiro.github.io/flybrain/**
-（インストール不要。3Dスパイクビューア＋ブラウザ内でリアルタイムに動く摂食回路）
+
+インストール不要。ページの中でハエの脳が実際に動きます。
+
+1. **遊ぶ** — ハエを操縦して餌を探すゲーム。食べるか吐き出すかを決めるのは脳です
+2. **計算する** — 同じ回路を論理ゲートとして使い、**ハエの脳7個で半加算器**を組んで 1+1=10 を計算
+3. **自由に触る** — 味の濃さを連続的に変えて応答を観察する実験台
 
 FlyWireコネクトーム（139,255ニューロン・5,450万シナプス）に基づく、
 ショウジョウバエ全脳スパイキングシミュレーションの遊び場です。
@@ -111,6 +116,49 @@ Max/MSP、TouchDesigner等から脳を刺激したり、スパイクで機器を
 `export_subnet.py` がこれを `subnet.json` に書き出し、`flybrain.js`（同じLIFモデルの
 JavaScript移植）がブラウザ内で実行します。公開ページのインタラクティブ部分がこれです。
 
+### 実測した回路の特性
+
+`measure_dynamics.js` と `measure_dose.js` で測定した、ゲーム設計にも使っている値です。
+
+| 項目 | 実測値 |
+|---|---|
+| 砂糖を与えてから最初のMN9スパイクまで | 25 ms |
+| MN9が20Hzを超えるまで | 30 ms |
+| 砂糖を止めてから20Hz以下に落ちるまで | 30 ms |
+| 苦味を足してからMN9が沈黙するまで | 25 ms |
+| 反応が始まる砂糖の濃さ | 30 Hz（20 Hz以下では完全に無反応） |
+| 砂糖150Hzを完全に打ち消すのに必要な苦味 | 120 Hz（80 Hzでほぼ沈黙） |
+
+## ハエの脳で計算する
+
+砂糖を入力A、苦味を入力B、MN9を出力とみなすと、この回路は **`A AND NOT B`**（NIMPLY）
+を計算しています。全脳・部分回路・ブラウザ版のすべてで真理値表が一致します。
+
+| A 砂糖 | B 苦味 | MN9 | 出力 |
+|---|---|---|---|
+| 0 | 0 | 0.0 Hz | 0 |
+| 1 | 0 | 116 Hz | 1 |
+| 0 | 1 | 0.0 Hz | 0 |
+| 1 | 1 | 0.0 Hz | 0 |
+
+NIMPLYは定数1と組み合わせると**関数完全**——つまりこれだけであらゆる論理回路が作れます。
+実際に7個つないで半加算器を組み、動作を確認しました。
+
+```
+node test_adder.js      # ハエの脳7個 = 28,000ニューロンで 1+1 = 10 (2進)
+```
+
+```
+  A  B | SUM CARRY | expected | MN9 Hz (sum / carry)
+  0  0 |  0    0   |   0 0    |    0 /    0   ok
+  1  0 |  1    0   |   1 0    |   50 /    0   ok
+  0  1 |  1    0   |   1 0    |   85 /    0   ok
+  1  1 |  0    1   |   0 1    |    0 /  100   ok
+```
+
+ゲート間は出力の発火率を20Hzで0/1に整えて次の脳の味覚入力へ渡しています
+（論理回路でいうバッファ相当）。それ以外はすべて生の神経活動です。
+
 ## モデル
 
 Shiu et al. 2024 の leaky integrate-and-fire モデルそのまま:
@@ -129,6 +177,7 @@ python compare.py results/taste.parquet       # 対 Brian2参照実装
 python validate_subnet.py                     # 対 部分回路
 node test_js_engine.js                        # 対 ブラウザJS版
 node test_page.js                             # ビルド済みページの静的検査＋実行
+node test_adder.js                            # ハエの脳7個の半加算器
 python test_bridge.py                         # UDPブリッジ（io_bridge.py起動中に）
 ```
 
@@ -149,6 +198,8 @@ python test_bridge.py                         # UDPブリッジ（io_bridge.py�
 | `flybrain.js` | LIFモデルのJavaScript移植（ブラウザ実行用） |
 | `export_subnet.py` / `viz_export.py` / `build_page.py` | 公開ページの生成 |
 | `page_template.html` | ページのHTML/CSS/JS本体（データは差し込み） |
+| `measure_dynamics.js` / `measure_dose.js` | 応答遅延・用量反応の測定 |
+| `test_adder.js` | ハエの脳7個で半加算器を組んで検証 |
 
 ## データと出典
 

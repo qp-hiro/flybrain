@@ -186,12 +186,61 @@
   }
   .badge.on { border-color: var(--spike); color: var(--spike); }
   #boot { text-align: center; padding: 30px 0; }
-  #bootmsg { font-family: var(--mono); font-size: 12px; color: var(--muted); margin-top: 12px; }
+  .bootmsg { font-family: var(--mono); font-size: 12px; color: var(--muted); margin-top: 12px; }
   #rigbody[hidden] { display: none; }
   .kbd {
     font-family: var(--mono); font-size: 11px; border: 1px solid var(--line);
     border-bottom-width: 2px; border-radius: 3px; padding: 1px 5px; color: var(--muted);
   }
+
+  /* ---------- demo chapters ---------- */
+  .chapter { display: flex; align-items: baseline; gap: 12px; margin-bottom: 6px; }
+  .chapter .num {
+    font-family: var(--mono); font-size: 30px; font-weight: 600; color: var(--spike);
+    line-height: 1;
+  }
+  .chapter h2 { margin: 0; }
+  .chapter .sub { font-size: 19px; font-weight: 600; letter-spacing: -0.01em; }
+
+  /* ---------- game ---------- */
+  #game { width: 100%; height: 340px; display: block; border-radius: 8px;
+          background: #080C12; border: 1px solid var(--line); touch-action: none; cursor: none; }
+  #gamehud {
+    display: flex; gap: 20px; flex-wrap: wrap; align-items: center;
+    font-family: var(--mono); font-size: 12px; margin-top: 12px;
+    font-variant-numeric: tabular-nums;
+  }
+  #gamehud .k { color: var(--muted); }
+  .bar { width: 130px; height: 8px; background: #1A2430; border-radius: 4px; overflow: hidden; }
+  .bar > i { display: block; height: 100%; background: var(--spike); transition: width .12s linear; }
+  #verdict { font-family: var(--mono); font-size: 13px; min-height: 1.6em; margin-top: 10px; }
+
+  /* ---------- logic ---------- */
+  .toggles { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin: 14px 0; }
+  .tg {
+    font-family: var(--mono); font-size: 13px; padding: 8px 16px;
+    border: 1px solid var(--line); border-radius: 5px; background: #141C27;
+    color: var(--muted); cursor: pointer; display: flex; align-items: center; gap: 8px;
+  }
+  .tg[aria-pressed="true"] { color: var(--text); }
+  .tg.sugar[aria-pressed="true"] { border-color: var(--sugar); background: rgba(79,195,247,0.14); }
+  .tg.bitter[aria-pressed="true"] { border-color: var(--bitter); background: rgba(255,180,84,0.14); }
+  .tt { font-family: var(--mono); font-size: 13px; }
+  .tt td, .tt th { padding: 7px 16px 7px 0; }
+  .tt tr.cur td { color: var(--spike); }
+  .tt td.bit { font-weight: 600; }
+  #gateout {
+    font-family: var(--mono); font-variant-numeric: tabular-nums;
+    display: flex; align-items: baseline; gap: 14px; margin-top: 4px;
+  }
+  #gatebit { font-size: 46px; font-weight: 600; line-height: 1; }
+  #circuit { width: 100%; height: 300px; display: block; border-radius: 8px;
+             background: #0B1017; border: 1px solid var(--line); }
+  #adderout {
+    font-family: var(--mono); font-size: 15px; margin-top: 12px;
+    font-variant-numeric: tabular-nums; min-height: 1.8em;
+  }
+  #adderout b { color: var(--spike); font-size: 19px; }
 
   footer { padding: 48px 0 72px; color: var(--muted); font-size: 13px; border-top: 1px solid var(--line-soft); }
 
@@ -266,20 +315,146 @@
   </div>
 </section>
 
-<!-- ============================ LIVE RIG ============================ -->
+<!-- ============================ GAME ============================ -->
+<section id="gamesec">
+  <div class="wide">
+    <div class="chapter">
+      <span class="num">①</span>
+      <div>
+        <h2>Play · ハエの脳で遊ぶ</h2>
+        <div class="sub">脳に食事を判断させる</div>
+      </div>
+    </div>
+    <p class="lede">あなたはハエを操縦するだけです。<b>食べるか吐き出すかを決めるのは、
+      あなたではなく脳です。</b></p>
+    <p>餌の上にハエを運ぶと、その味が受容ニューロンに流し込まれます。あとは
+      4,000ニューロンの回路が自分で判断し、口吻を伸ばすか伸ばさないかを決めます。
+      甘い餌は食べ、毒は拒否する——その判断はプログラムされたルールではなく、
+      配線図から出てきた回路の動作です。</p>
+
+    <div id="gameboot">
+      <button id="gamebootbtn">▶ ゲームを始める</button>
+      <div class="bootmsg">4,000ニューロンの回路をブラウザ内で構築します</div>
+    </div>
+
+    <div id="gamebody" hidden>
+      <canvas id="game" tabindex="0"
+        aria-label="ハエを操作して餌を食べるゲーム"></canvas>
+      <div id="gamehud">
+        <span><span class="k">栄養</span> <b id="gScore">0</b></span>
+        <span><span class="k">満腹度</span></span>
+        <span class="bar"><i id="gHunger" style="width:100%"></i></span>
+        <span><span class="k">残り</span> <b id="gTime">45.0</b>s</span>
+        <span><span class="k">MN9</span> <b class="lo" id="gMn9">0</b> Hz</span>
+        <button id="gRestart">やり直す</button>
+      </div>
+      <div id="verdict"></div>
+      <p class="note" style="margin-top:14px">
+        操作: <span class="kbd">↑</span><span class="kbd">↓</span><span class="kbd">←</span>
+        <span class="kbd">→</span> またはマウスでハエを動かすだけ。
+        餌は4種類あります——<b style="color:var(--sugar)">濃い蜜</b>、
+        <b style="color:#3A7A9E">薄い蜜</b>、<b style="color:var(--bitter)">毒</b>、そして
+        <b style="color:#B98BCF">甘いのに毒入り</b>。脳がどれを食べてどれを拒否するか、
+        見ていてください。</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============================ COMPUTE ============================ -->
+<section id="logicsec">
+  <div class="wide">
+    <div class="chapter">
+      <span class="num">②</span>
+      <div>
+        <h2>Compute · ハエの脳で計算する</h2>
+        <div class="sub">脳を論理ゲートとして使う</div>
+      </div>
+    </div>
+    <p class="lede">さっきの「甘い、でも苦くない時だけ食べる」という判断は、
+      <b>論理演算そのもの</b>です。</p>
+    <p>砂糖を入力A、苦味を入力B、MN9の発火を出力とみなすと、この回路は
+      <code>A AND NOT B</code> を計算しています。下のボタンで実際に確かめてください。
+      押すたびに、その組み合わせで4,000ニューロンが動いて答えを返します。</p>
+
+    <div id="logicboot">
+      <button id="logicbootbtn">▶ 論理ゲートとして起動する</button>
+    </div>
+
+    <div id="logicbody" hidden>
+      <div class="rig-grid">
+        <div class="card">
+          <h4>入力 — input</h4>
+          <div class="toggles">
+            <button class="tg sugar" id="tgA" aria-pressed="false">
+              <span class="dot" style="background:var(--sugar)"></span>A: 砂糖</button>
+            <button class="tg bitter" id="tgB" aria-pressed="false">
+              <span class="dot" style="background:var(--bitter)"></span>B: 苦味</button>
+          </div>
+          <h4 style="margin-top:22px">出力 — MN9</h4>
+          <div id="gateout">
+            <span id="gatebit" class="lo">0</span>
+            <span><span id="gatehz">0.0</span> Hz<br>
+              <span class="note" id="gatestate">口吻は引っ込んでいる</span></span>
+          </div>
+        </div>
+
+        <div class="card">
+          <h4>真理値表 — 実測値が入ります</h4>
+          <table class="tt">
+            <thead><tr><th>A 砂糖</th><th>B 苦味</th><th>出力</th><th>MN9</th></tr></thead>
+            <tbody id="ttbody">
+              <tr data-k="00"><td>0</td><td>0</td><td class="bit">—</td><td class="hz">—</td></tr>
+              <tr data-k="10"><td>1</td><td>0</td><td class="bit">—</td><td class="hz">—</td></tr>
+              <tr data-k="01"><td>0</td><td>1</td><td class="bit">—</td><td class="hz">—</td></tr>
+              <tr data-k="11"><td>1</td><td>1</td><td class="bit">—</td><td class="hz">—</td></tr>
+            </tbody>
+          </table>
+          <p class="note" id="ttnote" style="margin-top:12px">
+            4通りすべて試すと、この回路が何を計算しているか分かります。</p>
+        </div>
+      </div>
+
+      <h3>ハエの脳7個で足し算をする</h3>
+      <p><code>A AND NOT B</code>（NIMPLYと呼ばれる演算）は、定数1と組み合わせると
+        <b>どんな論理回路でも作れる</b>ことが知られています。NOTもANDもORも、
+        この演算だけで組み立てられます。</p>
+      <p>ということは、ハエの脳を並べればコンピュータになります。実際にやってみたのが下の回路です。
+        <b>7匹分の脳＝28,000ニューロン・270万シナプス</b>を使って、1ビットの足し算
+        （半加算器）を組みました。ボタンを押すと、信号が脳から脳へ伝わっていきます。</p>
+
+      <div class="toggles">
+        <button class="tg sugar" id="adA" aria-pressed="false">A = 0</button>
+        <button class="tg sugar" id="adB" aria-pressed="false">B = 0</button>
+        <button id="adRun">▶ 7個の脳で計算する</button>
+      </div>
+      <canvas id="circuit" aria-label="ハエの脳7個で構成した半加算器の回路図"></canvas>
+      <div id="adderout">A と B を選んで実行してください</div>
+      <p class="note">各ゲートは独立した4,000ニューロンの回路です。前のゲートの出力
+        （MN9の発火率）を20Hzで0/1に整えて次の脳の味覚入力に渡しています——
+        論理回路でいうバッファに相当する処理です。それ以外は生の神経活動です。</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============================ LAB BENCH ============================ -->
 <section id="rig">
   <div class="wide">
-    <h2>Interactive · 生きた脳を操作する</h2>
-    <p class="lede">下のパネルでは、ハエの摂食回路が<b>あなたのブラウザの中でリアルタイムに
-      動きます</b>。味を変えると、脳がその場で反応します。</p>
+    <div class="chapter">
+      <span class="num">③</span>
+      <div>
+        <h2>Explore · 自由に触る</h2>
+        <div class="sub">味の濃さと反応の関係を調べる</div>
+      </div>
+    </div>
+    <p class="lede">味の濃さを連続的に変えて、脳の反応を観察する実験台です。</p>
     <p class="note">全脳（12.7万ニューロン）は実時間の約1/20でしか動かないため、
       摂食に関わる2シナプス以内の部分回路 <b>4,000ニューロン・387,060シナプス</b> を切り出しています。
       この部分回路は全脳と同じ応答を示すことを確認済みです（砂糖100Hz → MN9 78Hz 対 全脳80Hz、
       砂糖＋苦味 → 両者とも0Hz）。</p>
 
     <div id="boot">
-      <button id="bootbtn">▶ 脳を起動する</button>
-      <div id="bootmsg">4,000ニューロンの回路をブラウザ内で構築します（約2秒）</div>
+      <button id="bootbtn">▶ 実験台を起動する</button>
+      <div class="bootmsg">4,000ニューロンの回路をブラウザ内で構築します</div>
     </div>
 
     <div id="rigbody" hidden>
@@ -321,11 +496,6 @@
         <div class="card span2">
           <h4>MN9 発火率の推移 — 直近6秒</h4>
           <canvas id="trace" aria-label="MN9発火率の時系列グラフ"></canvas>
-          <div id="gamebar">
-            <button id="gamebtn">🎯 ミッション開始</button>
-            <span id="mission">サンドボックス：自由に味を変えて反応を見てください</span>
-            <span class="badge" id="scorebadge">SCORE 0</span>
-          </div>
         </div>
 
         <div class="card span2">
@@ -340,10 +510,13 @@
         <li><b>苦味は砂糖に勝つ</b> — 砂糖を最大にしてから苦味を上げると、MN9は完全に停止します。
           これは実際のハエの行動（苦い餌は吐き出す）と同じで、抑制性ニューロンによる回路レベルの
           拒否反応が配線図だけから再現されています。</li>
-        <li><b>応答には遅れがある</b> — 味を変えてからMN9が反応するまで数十ミリ秒かかります。
-          シナプス遅延1.8msが何段も積み重なった、回路の物理的な制約です。</li>
+        <li><b>応答には遅れがある</b> — 砂糖を与えてから最初のMN9スパイクまで
+          <b>25 ms</b>、発火率が立ち上がるまで<b>30 ms</b>（実測）。
+          シナプス遅延1.8msが何段も積み重なった、回路の物理的な制約です。
+          逆に苦味を足すと<b>25 ms</b>で沈黙します——拒否のほうがわずかに速い。</li>
         <li><b>閾値がある</b> — 砂糖を少しずつ上げていくと、ある濃度で急にMN9が立ち上がります。
-          「薄い砂糖水は無視する」という判断が回路に埋め込まれています。</li>
+          「薄い砂糖水は無視する」という判断が回路に埋め込まれています。
+          ①のゲームで<b>薄い蜜</b>を食べてくれないのはこれが理由です。</li>
       </ul>
       <p class="note">HCIの入力装置として見ると、これは<b>遅延と不応期と閾値を持つ、実在の生物に
         由来するコントローラ</b>です。同じ操作を繰り返しても出力は揺らぎます（ポアソン入力の
@@ -775,129 +948,559 @@ if (!matchMedia('(prefers-reduced-motion: reduce)').matches) togglePlay();
 requestAnimationFrame(frame);
 
 // ============================================================
-//  PART 2 — live subnetwork simulation (the interactive rig)
+//  PART 2 — the live circuit: a game, a logic gate, and a bench
+//  All three run the same 4,000-neuron feeding subnetwork in the browser.
 // ============================================================
 /*__FLYBRAIN_JS__*/
 
 const SUBNET = /*__SUBNET__*/;
 
-(() => {
-  const $ = id => document.getElementById(id);
-  let net, brain, running = false;
-  let sugarHz = 0, bitterHz = 0;
+const $ = id => document.getElementById(id);
 
-  // rolling MN9 history: 6 s at 20 Hz
+// the network is shared between every demo; decode it once, on first use
+let NET = null;
+const net = () => NET || (NET = FlyBrain.decodeNet(SUBNET));
+
+// only the section you are actually looking at is allowed to burn CPU
+const Visible = (() => {
+  const set = new Set();
+  const io = new IntersectionObserver(es => {
+    for (const e of es) e.isIntersecting ? set.add(e.target.id) : set.delete(e.target.id);
+  }, { threshold: 0.02 });
+  return { watch: el => io.observe(el), has: id => set.has(id) };
+})();
+for (const id of ['gamesec', 'logicsec', 'rig']) Visible.watch($(id));
+
+// measured on this very circuit (see measure_dose.js / measure_dynamics.js):
+//   sugar <=20 Hz -> silent,  30-50 Hz -> weak,  100 Hz -> 94 Hz,  200 Hz -> 137 Hz
+//   bitter 120 Hz vetoes sugar 150 Hz completely, in about 25 ms
+const EAT_THRESHOLD = 30;   // MN9 Hz above which the proboscis is out
+const FULL = 150;           // Hz delivered by a full-strength taste
+
+function fitCanvas(c) {
+  const w = c.clientWidth, h = c.clientHeight;
+  if (!w) return null;
+  const dpr = devicePixelRatio || 1;
+  if (c.width !== Math.round(w * dpr)) { c.width = w * dpr; c.height = h * dpr; }
+  const ctx = c.getContext('2d');
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  return { ctx, w, h };
+}
+
+// ------------------------------------------------------------
+//  1 — the game: you steer, the brain decides whether to eat
+// ------------------------------------------------------------
+(() => {
+  const FOODS = {
+    rich:   { label: '濃い蜜',       sugar: 1.00, bitter: 0.00, food: 1.00, col: '79,195,247' },
+    weak:   { label: '薄い蜜',       sugar: 0.20, bitter: 0.00, food: 0.35, col: '58,122,158' },
+    poison: { label: '毒',           sugar: 0.00, bitter: 0.80, food: 0.00, col: '255,180,84' },
+    mixed:  { label: '甘いのに毒入り', sugar: 1.00, bitter: 0.60, food: 0.85, col: '185,139,207' },
+  };
+  const SPAWN = ['rich', 'rich', 'rich', 'weak', 'weak', 'poison', 'poison', 'mixed', 'mixed'];
+  const ROUND_S = 45;
+
+  let brain = null, blobs = [], fly = { x: 0.5, y: 0.5 }, aim = { x: 0.5, y: 0.5 };
+  let score = 0, hunger = 1, left = ROUND_S, over = false, mn9 = 0, extend = 0;
+  let touching = null, started = 0;
+  const keys = new Set();
+
+  $('gamebootbtn').onclick = () => {
+    $('gamebootbtn').disabled = true;
+    $('gameboot').querySelector('.bootmsg').textContent = '回路を構築中 …';
+    setTimeout(() => {
+      brain = new FlyBrain.Brain(net());
+      $('gameboot').hidden = true;
+      $('gamebody').hidden = false;
+      reset();
+      $('game').focus();
+      requestAnimationFrame(loop);
+    }, 30);
+  };
+  $('gRestart').onclick = reset;
+
+  function reset() {
+    blobs = [];
+    for (let i = 0; i < 9; i++) blobs.push(spawn());
+    fly = { x: 0.5, y: 0.5 }; aim = { x: 0.5, y: 0.5 };
+    score = 0; hunger = 1; left = ROUND_S; over = false; started = 0;
+    $('verdict').textContent = '';
+  }
+  function spawn() {
+    const kind = SPAWN[(Math.random() * SPAWN.length) | 0];
+    return {
+      kind, ...FOODS[kind],
+      x: 0.08 + Math.random() * 0.84,
+      y: 0.12 + Math.random() * 0.76,
+      r: 0.055 + Math.random() * 0.02,
+      amount: 1,
+    };
+  }
+
+  const g = $('game');
+  g.addEventListener('keydown', e => {
+    if (e.key.startsWith('Arrow') || 'wasd'.includes(e.key)) { keys.add(e.key); e.preventDefault(); }
+  });
+  g.addEventListener('keyup', e => keys.delete(e.key));
+  g.addEventListener('pointermove', e => {
+    const r = g.getBoundingClientRect();
+    aim = { x: (e.clientX - r.left) / r.width, y: (e.clientY - r.top) / r.height };
+  });
+  g.addEventListener('pointerdown', () => g.focus());
+
+  let last = 0;
+  function loop(now) {
+    requestAnimationFrame(loop);
+    if (!brain || !Visible.has('gamesec')) { last = now; return; }
+    const dt = Math.min(0.05, (now - last) / 1000);
+    last = now;
+    if (!started) started = now;
+
+    // --- steer ---
+    const sp = 0.85 * dt;
+    if (keys.size) {
+      if (keys.has('ArrowLeft') || keys.has('a')) aim.x -= sp;
+      if (keys.has('ArrowRight') || keys.has('d')) aim.x += sp;
+      if (keys.has('ArrowUp') || keys.has('w')) aim.y -= sp;
+      if (keys.has('ArrowDown') || keys.has('s')) aim.y += sp;
+      aim.x = Math.max(0.03, Math.min(0.97, aim.x));
+      aim.y = Math.max(0.05, Math.min(0.95, aim.y));
+    }
+    fly.x += (aim.x - fly.x) * Math.min(1, dt * 7);
+    fly.y += (aim.y - fly.y) * Math.min(1, dt * 7);
+
+    // --- taste under the fly -> stimulate the real receptor neurons ---
+    touching = null;
+    let sugar = 0, bitter = 0;
+    for (const b of blobs) {
+      if (b.amount <= 0) continue;
+      const d = Math.hypot(b.x - fly.x, (b.y - fly.y) * 0.55);
+      if (d < b.r) {
+        sugar = Math.max(sugar, b.sugar);
+        bitter = Math.max(bitter, b.bitter);
+        if (!touching || d < touching.d) touching = { b, d };
+      }
+    }
+    if (!over) {
+      brain.setStim(net().groups.sugar, sugar * FULL);
+      brain.setStim(net().groups.bitter, bitter * FULL);
+    } else {
+      brain.setStim(net().groups.sugar, 0);
+      brain.setStim(net().groups.bitter, 0);
+    }
+
+    // --- let the brain think (real time, capped so the frame stays smooth) ---
+    const steps = Math.min(Math.round(dt * 10000), 220);
+    brain.runSteps(steps);
+    const sp9 = brain.spikes[net().groups.mn9[0]] || 0;
+    brain.spikes.fill(0);
+    const inst = steps ? sp9 / (steps * 1e-4) : 0;
+    mn9 = mn9 * 0.78 + inst * 0.22;
+
+    // --- the brain's decision drives eating ---
+    const eating = mn9 > EAT_THRESHOLD && touching;
+    extend += ((mn9 > EAT_THRESHOLD ? 1 : 0) - extend) * Math.min(1, dt * 9);
+
+    if (!over) {
+      left -= dt;
+      hunger -= dt / 26;
+      if (eating) {
+        const take = Math.min(touching.b.amount, dt * 0.85);
+        touching.b.amount -= take;
+        score += take * touching.b.food * 100;
+        hunger = Math.min(1, hunger + take * touching.b.food * 0.75);
+        if (touching.b.amount <= 0) Object.assign(touching.b, spawn());
+      }
+      if (left <= 0 || hunger <= 0) { over = true; left = Math.max(0, left); }
+    }
+
+    // --- explain what just happened ---
+    let msg = '';
+    if (over) {
+      msg = hunger <= 0
+        ? `<span class="lo">飢え死にしました</span> — 栄養 ${score.toFixed(0)}。濃い蜜を探しましょう。`
+        : `<span class="hi">終了</span> — 栄養 ${score.toFixed(0)} を集めました。`;
+    } else if (touching) {
+      const b = touching.b, hz = mn9.toFixed(0);
+      if (eating) msg = `<span class="hi">食べています</span> — ${b.label}（MN9 ${hz} Hz）`;
+      else if (b.kind === 'weak')
+        msg = `${b.label}に触れていますが<span class="lo">反応しません</span> — ` +
+              `MN9 ${hz} Hz。閾値${EAT_THRESHOLD}Hzに届いていません（薄すぎる）`;
+      else if (b.kind === 'mixed')
+        msg = `${b.label} — 砂糖は十分なのに<span class="lo">拒否</span>。` +
+              `苦味が砂糖を上書きしています（MN9 ${hz} Hz）`;
+      else if (b.kind === 'poison')
+        msg = `${b.label} — <span class="lo">口吻を引っ込めています</span>（MN9 ${hz} Hz）`;
+      else msg = `${b.label} — MN9 ${hz} Hz`;
+    } else {
+      msg = '<span class="note">餌の上にハエを運んでください</span>';
+    }
+    $('verdict').innerHTML = msg;
+    $('gScore').textContent = score.toFixed(0);
+    $('gTime').textContent = left.toFixed(1);
+    $('gMn9').textContent = mn9.toFixed(0);
+    const hb = $('gHunger');
+    hb.style.width = (hunger * 100).toFixed(0) + '%';
+    hb.style.background = hunger < 0.25 ? '#FF5C8A' : hunger < 0.5 ? '#FFB454' : '#66FF9E';
+
+    draw();
+  }
+
+  function draw() {
+    const fit = fitCanvas(g);
+    if (!fit) return;
+    const { ctx, w, h } = fit;
+    ctx.fillStyle = '#080C12'; ctx.fillRect(0, 0, w, h);
+
+    ctx.strokeStyle = '#121A24'; ctx.lineWidth = 1;
+    for (let i = 1; i < 8; i++) {
+      ctx.beginPath(); ctx.moveTo(w*i/8, 0); ctx.lineTo(w*i/8, h); ctx.stroke();
+    }
+
+    for (const b of blobs) {
+      if (b.amount <= 0) continue;
+      const x = b.x*w, y = b.y*h, r = b.r*w*b.amount;
+      const gr = ctx.createRadialGradient(x, y, 0, x, y, r);
+      gr.addColorStop(0, `rgba(${b.col},0.85)`);
+      gr.addColorStop(1, `rgba(${b.col},0.05)`);
+      ctx.fillStyle = gr;
+      ctx.beginPath(); ctx.arc(x, y, r, 0, 7); ctx.fill();
+      if (b.kind === 'mixed' || b.kind === 'poison') {
+        ctx.strokeStyle = `rgba(${b.col},0.55)`; ctx.lineWidth = 1;
+        ctx.setLineDash([3, 3]);
+        ctx.beginPath(); ctx.arc(x, y, r*0.6, 0, 7); ctx.stroke();
+        ctx.setLineDash([]);
+      }
+    }
+
+    // the fly, with its proboscis out when MN9 says so
+    const fx = fly.x*w, fy = fly.y*h;
+    if (extend > 0.05) {
+      ctx.strokeStyle = `rgba(255,92,138,${0.35 + extend*0.65})`;
+      ctx.lineWidth = 3 + extend*3;
+      ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.moveTo(fx, fy); ctx.lineTo(fx, fy + 9 + extend*15); ctx.stroke();
+    }
+    ctx.fillStyle = '#D7E1EC';
+    ctx.beginPath(); ctx.ellipse(fx, fy, 8, 6, 0, 0, 7); ctx.fill();
+    ctx.fillStyle = '#3A2130';
+    ctx.beginPath(); ctx.ellipse(fx + 4, fy - 2, 3.4, 3, 0.3, 0, 7); ctx.fill();
+    ctx.strokeStyle = 'rgba(215,225,236,0.30)'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.ellipse(fx - 4, fy + 1, 9, 4, -0.6, 0, 7); ctx.stroke();
+    ctx.beginPath(); ctx.ellipse(fx - 4, fy - 3, 9, 4, 0.6, 0, 7); ctx.stroke();
+
+    ctx.font = '11px ui-monospace, monospace';
+    ctx.fillStyle = extend > 0.3 ? '#66FF9E' : '#4E5D6E';
+    ctx.fillText(extend > 0.3 ? '口吻 伸展' : '口吻 収納', 12, h - 12);
+
+    if (over) {
+      ctx.fillStyle = 'rgba(8,12,18,0.78)'; ctx.fillRect(0, 0, w, h);
+      ctx.fillStyle = '#D7E1EC';
+      ctx.font = '600 22px ui-monospace, monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText(`栄養 ${score.toFixed(0)}`, w/2, h/2 - 4);
+      ctx.font = '12px ui-monospace, monospace';
+      ctx.fillStyle = '#7C8B9D';
+      ctx.fillText('「やり直す」でもう一度', w/2, h/2 + 20);
+      ctx.textAlign = 'left';
+    }
+  }
+})();
+
+// ------------------------------------------------------------
+//  2 — the same circuit read as a logic gate, then seven of them
+//      wired into a half adder
+// ------------------------------------------------------------
+(() => {
+  const ON = 120, THRESH = 20;
+  let gate = null, A = false, Bv = false, hz = 0, stable = 0;
+  const measured = {};
+
+  $('logicbootbtn').onclick = () => {
+    $('logicbootbtn').disabled = true;
+    setTimeout(() => {
+      gate = new FlyBrain.Brain(net());
+      $('logicboot').hidden = true;
+      $('logicbody').hidden = false;
+      drawCircuit();
+      requestAnimationFrame(loop);
+    }, 30);
+  };
+
+  function setIn(which, val) {
+    if (which === 'A') { A = val; $('tgA').setAttribute('aria-pressed', val); }
+    else { Bv = val; $('tgB').setAttribute('aria-pressed', val); }
+    stable = 0;
+    if (gate) {
+      gate.setStim(net().groups.sugar, A ? ON : 0);
+      gate.setStim(net().groups.bitter, Bv ? ON : 0);
+    }
+  }
+  $('tgA').onclick = () => setIn('A', !A);
+  $('tgB').onclick = () => setIn('B', !Bv);
+
+  let last = 0;
+  function loop(now) {
+    requestAnimationFrame(loop);
+    if (!gate || !Visible.has('logicsec')) { last = now; return; }
+    const dt = Math.min(0.05, (now - last) / 1000);
+    last = now;
+
+    const steps = Math.min(Math.round(dt * 10000), 220);
+    gate.runSteps(steps);
+    const s = gate.spikes[net().groups.mn9[0]] || 0;
+    gate.spikes.fill(0);
+    hz = hz * 0.8 + (steps ? s / (steps * 1e-4) : 0) * 0.2;
+    stable += dt;
+
+    const bit = hz > THRESH ? 1 : 0;
+    $('gatebit').textContent = bit;
+    $('gatebit').className = bit ? 'hi' : 'lo';
+    $('gatehz').textContent = hz.toFixed(1);
+    $('gatestate').textContent = bit ? '口吻を伸ばしている（＝出力 1）' : '口吻は引っ込んでいる（＝出力 0）';
+
+    // record a row once the circuit has settled in this combination
+    const key = (A ? '1' : '0') + (Bv ? '1' : '0');
+    for (const tr of $('ttbody').children) tr.classList.toggle('cur', tr.dataset.k === key);
+    if (stable > 0.8) {
+      measured[key] = { bit, hz };
+      const tr = $('ttbody').querySelector(`[data-k="${key}"]`);
+      tr.querySelector('.bit').textContent = bit;
+      tr.querySelector('.bit').className = 'bit ' + (bit ? 'hi' : 'lo');
+      tr.querySelector('.hz').textContent = hz.toFixed(0) + ' Hz';
+      if (Object.keys(measured).length === 4 && !$('ttnote').dataset.done) {
+        $('ttnote').dataset.done = '1';
+        $('ttnote').innerHTML =
+          '出力が1になるのは<b>Aが1でBが0のとき</b>だけ。これは <code>A AND NOT B</code>' +
+          '（NIMPLY）という論理演算です。ハエの脳が計算していたのはこれでした。';
+      }
+    }
+    if (adder.job) stepAdder();
+  }
+
+  // ---- half adder out of seven fly brains ----
+  //   g1 = A ¬B   g2 = B ¬A   g6 = ¬B
+  //   g3 = ¬g1    g7 = A ¬g6  (= A AND B = CARRY)
+  //   g4 = g3 ¬g2 (= NOR)     g5 = ¬g4 (= XOR = SUM)
+  const GATES = [
+    { id: 'g1', label: 'A ∧ ¬B', x: 0.26, y: 0.14, in: ['A', 'B'] },
+    { id: 'g2', label: 'B ∧ ¬A', x: 0.26, y: 0.40, in: ['B', 'A'] },
+    { id: 'g6', label: '¬B',     x: 0.26, y: 0.80, in: ['1', 'B'] },
+    { id: 'g3', label: '¬g1',    x: 0.48, y: 0.14, in: ['1', 'g1'] },
+    { id: 'g7', label: 'CARRY',  x: 0.48, y: 0.80, in: ['A', 'g6'] },
+    { id: 'g4', label: 'NOR',    x: 0.68, y: 0.27, in: ['g3', 'g2'] },
+    { id: 'g5', label: 'SUM',    x: 0.88, y: 0.27, in: ['1', 'g4'] },
+  ];
+  const adder = { A: false, B: false, job: null, val: {}, active: null };
+
+  $('adA').onclick = () => {
+    adder.A = !adder.A;
+    $('adA').textContent = 'A = ' + (adder.A ? 1 : 0);
+    $('adA').setAttribute('aria-pressed', adder.A);
+    resetAdder();
+  };
+  $('adB').onclick = () => {
+    adder.B = !adder.B;
+    $('adB').textContent = 'B = ' + (adder.B ? 1 : 0);
+    $('adB').setAttribute('aria-pressed', adder.B);
+    resetAdder();
+  };
+  $('adRun').onclick = () => {
+    resetAdder();
+    adder.job = { i: 0, phase: 'settle', left: 1200, brain: null };
+    $('adRun').disabled = true;
+    $('adderout').textContent = '計算中 …';
+    startGate();
+  };
+  function resetAdder() {
+    adder.job = null; adder.val = {}; adder.active = null;
+    $('adRun').disabled = false;
+    $('adderout').textContent = '「7個の脳で計算する」を押してください';
+    drawCircuit();
+  }
+  function inputBit(name) {
+    if (name === '1') return true;
+    if (name === 'A') return adder.A;
+    if (name === 'B') return adder.B;
+    return !!adder.val[name];
+  }
+  function startGate() {
+    const gdef = GATES[adder.job.i];
+    const b = new FlyBrain.Brain(net(), (adder.job.i + 1) * 7919);
+    b.setStim(net().groups.sugar, inputBit(gdef.in[0]) ? ON : 0);
+    b.setStim(net().groups.bitter, inputBit(gdef.in[1]) ? ON : 0);
+    adder.job.brain = b;
+    adder.job.phase = 'settle';
+    adder.job.left = 1200;          // 120 ms to settle
+    adder.active = gdef.id;
+  }
+  function stepAdder() {
+    const job = adder.job;
+    const n = Math.min(job.left, 170);
+    job.brain.runSteps(n);
+    job.left -= n;
+    if (job.left > 0) { drawCircuit(); return; }
+    if (job.phase === 'settle') {
+      job.brain.spikes.fill(0);
+      job.phase = 'read';
+      job.left = 2000;              // 200 ms to count spikes
+      drawCircuit();
+      return;
+    }
+    const gdef = GATES[job.i];
+    const h = job.brain.spikes[net().groups.mn9[0]] / 0.2;
+    adder.val[gdef.id] = h > THRESH;
+    adder.val[gdef.id + '_hz'] = h;
+    job.i++;
+    if (job.i < GATES.length) { startGate(); drawCircuit(); return; }
+
+    adder.job = null; adder.active = null;
+    $('adRun').disabled = false;
+    const sum = adder.val.g5 ? 1 : 0, carry = adder.val.g7 ? 1 : 0;
+    const a = adder.A ? 1 : 0, bb = adder.B ? 1 : 0;
+    const okk = (sum === (a ^ bb)) && (carry === (a & bb));
+    $('adderout').innerHTML =
+      `${a} + ${bb} = <b>${carry}${sum}</b>（2進） = <b>${carry * 2 + sum}</b>　` +
+      `<span class="note">SUM=${sum} CARRY=${carry} ・ ` +
+      `${okk ? '正解' : '不一致'} ・ 7個の脳＝28,000ニューロンが計算しました</span>`;
+    drawCircuit();
+  }
+
+  function drawCircuit() {
+    const fit = fitCanvas($('circuit'));
+    if (!fit) return;
+    const { ctx, w, h } = fit;
+    ctx.fillStyle = '#0B1017'; ctx.fillRect(0, 0, w, h);
+    const BW = Math.min(76, w * 0.105), BH = 34;
+    const px = n => {
+      if (n === 'A') return { x: w * 0.045, y: h * 0.14 };
+      if (n === 'B') return { x: w * 0.045, y: h * 0.52 };
+      if (n === '1') return { x: w * 0.045, y: h * 0.88 };
+      const gd = GATES.find(q => q.id === n);
+      return { x: gd.x * w, y: gd.y * h };
+    };
+
+    // wires
+    for (const gd of GATES) {
+      const to = px(gd.id);
+      gd.in.forEach((src, k) => {
+        const from = px(src);
+        const known = src === 'A' || src === 'B' || src === '1' || (src in adder.val);
+        const on = known && inputBit(src);
+        ctx.strokeStyle = on ? 'rgba(102,255,158,0.75)' : 'rgba(34,48,65,0.9)';
+        ctx.lineWidth = on ? 2 : 1;
+        ctx.beginPath();
+        const x0 = from.x + BW/2, y0 = from.y, x1 = to.x - BW/2, y1 = to.y + (k ? 8 : -8);
+        ctx.moveTo(x0, y0);
+        ctx.bezierCurveTo((x0+x1)/2, y0, (x0+x1)/2, y1, x1, y1);
+        ctx.stroke();
+      });
+    }
+
+    ctx.font = '11px ui-monospace, monospace';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+
+    // inputs
+    for (const [name, lab] of [['A', 'A'], ['B', 'B'], ['1', '1']]) {
+      const p = px(name), on = inputBit(name);
+      ctx.fillStyle = on ? 'rgba(102,255,158,0.18)' : '#141C27';
+      ctx.strokeStyle = on ? '#66FF9E' : '#223041'; ctx.lineWidth = 1;
+      roundRect(ctx, p.x - BW/2, p.y - BH/2, BW, BH, 5); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = on ? '#66FF9E' : '#7C8B9D';
+      ctx.fillText(`${lab} = ${on ? 1 : 0}`, p.x, p.y);
+    }
+
+    // gates
+    for (const gd of GATES) {
+      const p = px(gd.id);
+      const done = gd.id in adder.val;
+      const act = adder.active === gd.id;
+      const on = done && adder.val[gd.id];
+      ctx.fillStyle = act ? 'rgba(79,195,247,0.16)' : on ? 'rgba(102,255,158,0.14)' : '#141C27';
+      ctx.strokeStyle = act ? '#4FC3F7' : on ? '#66FF9E' : '#223041';
+      ctx.lineWidth = act ? 2 : 1;
+      roundRect(ctx, p.x - BW/2, p.y - BH/2, BW, BH, 5); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = act ? '#4FC3F7' : done ? (on ? '#66FF9E' : '#7C8B9D') : '#4E5D6E';
+      ctx.fillText(gd.label, p.x, p.y - 6);
+      ctx.fillStyle = '#7C8B9D';
+      ctx.fillText(act ? '計算中' : done ? `${adder.val[gd.id] ? 1 : 0}  ` +
+        `${adder.val[gd.id + '_hz'].toFixed(0)}Hz` : '—', p.x, p.y + 8);
+    }
+
+    ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+    ctx.fillStyle = '#4E5D6E';
+    ctx.fillText('各箱 = ハエの脳1個（4,000ニューロン）', 10, h - 10);
+  }
+  function roundRect(ctx, x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.arcTo(x + w, y, x + w, y + h, r);
+    ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r);
+    ctx.arcTo(x, y, x + w, y, r);
+    ctx.closePath();
+  }
+  addEventListener('resize', () => { if (gate) drawCircuit(); });
+})();
+
+// ------------------------------------------------------------
+//  3 — the lab bench: continuous taste in, everything out
+// ------------------------------------------------------------
+(() => {
+  let brain = null, glow = null, roles = null;
+  let sugarHz = 0, bitterHz = 0;
   const HIST = 120, hist = new Float32Array(HIST);
   let histPos = 0;
-  const targetHist = new Float32Array(HIST).fill(-1);
-
-  // recent-spike glow per neuron, for the scatter
-  let glow;
 
   $('bootbtn').onclick = () => {
     $('bootbtn').disabled = true;
-    $('bootmsg').textContent = '回路を構築中 …';
-    setTimeout(boot, 30);
+    $('boot').querySelector('.bootmsg').textContent = '回路を構築中 …';
+    setTimeout(() => {
+      brain = new FlyBrain.Brain(net());
+      glow = new Float32Array(net().n);
+      layout();
+      $('boot').hidden = true;
+      $('rigbody').hidden = false;
+      last = performance.now();
+      requestAnimationFrame(tick);
+    }, 30);
   };
 
-  function boot() {
-    net = FlyBrain.decodeNet(SUBNET);
-    brain = new FlyBrain.Brain(net);
-    glow = new Float32Array(net.n);
-    layoutScatter();
-    $('boot').hidden = true;
-    $('rigbody').hidden = false;
-    running = true;
-    lastTick = performance.now();
-    requestAnimationFrame(tick);
-  }
-
-  // ---- controls ----
-  function setSugar(hz) {
-    sugarHz = Math.max(0, Math.min(200, hz));
+  function setSugar(v) {
+    sugarHz = Math.max(0, Math.min(200, v));
     $('sSugar').value = sugarHz; $('oSugar').textContent = sugarHz + ' Hz';
-    if (brain) brain.setStim(net.groups.sugar, sugarHz);
+    if (brain) brain.setStim(net().groups.sugar, sugarHz);
   }
-  function setBitter(hz) {
-    bitterHz = Math.max(0, Math.min(200, hz));
+  function setBitter(v) {
+    bitterHz = Math.max(0, Math.min(200, v));
     $('sBitter').value = bitterHz; $('oBitter').textContent = bitterHz + ' Hz';
-    if (brain) brain.setStim(net.groups.bitter, bitterHz);
+    if (brain) brain.setStim(net().groups.bitter, bitterHz);
   }
   $('sSugar').oninput = e => setSugar(+e.target.value);
   $('sBitter').oninput = e => setBitter(+e.target.value);
 
-  const pad = $('pad'), pctx = pad.getContext('2d');
+  const pad = $('pad');
   function padSet(e) {
     const r = pad.getBoundingClientRect();
-    setSugar(Math.round(((e.clientX - r.left) / r.width) * 200 / 5) * 5);
-    setBitter(Math.round((1 - (e.clientY - r.top) / r.height) * 200 / 5) * 5);
+    setSugar(Math.round(((e.clientX - r.left) / r.width) * 40) * 5);
+    setBitter(Math.round((1 - (e.clientY - r.top) / r.height) * 40) * 5);
   }
   pad.addEventListener('pointerdown', e => { padSet(e); pad.setPointerCapture(e.pointerId); });
   pad.addEventListener('pointermove', e => { if (e.buttons) padSet(e); });
-
   document.addEventListener('keydown', e => {
-    if (!running || ['INPUT','SELECT','TEXTAREA'].includes(e.target.tagName)) return;
-    const k = e.key;
-    if (k === 'ArrowRight') setSugar(sugarHz + 10);
-    else if (k === 'ArrowLeft') setSugar(sugarHz - 10);
-    else if (k === 'ArrowUp') setBitter(bitterHz + 10);
-    else if (k === 'ArrowDown') setBitter(bitterHz - 10);
+    if (!brain || !Visible.has('rig')) return;
+    if (['INPUT', 'SELECT', 'TEXTAREA', 'BUTTON', 'CANVAS'].includes(e.target.tagName)) return;
+    if (e.key === 'ArrowRight') setSugar(sugarHz + 10);
+    else if (e.key === 'ArrowLeft') setSugar(sugarHz - 10);
+    else if (e.key === 'ArrowUp') setBitter(bitterHz + 10);
+    else if (e.key === 'ArrowDown') setBitter(bitterHz - 10);
     else return;
     e.preventDefault();
   });
 
-  // ---- mission mode ----
-  const MISSIONS = [
-    { text: 'MN9を <b>40〜80 Hz</b> に保つ（砂糖を少しずつ上げる）', lo: 40, hi: 80, ms: 4000 },
-    { text: '砂糖を上げたまま <b>MN9を10 Hz以下</b> に落とす（苦味を使う）',
-      lo: 0, hi: 10, ms: 3000, force: () => { if (sugarHz < 100) setSugar(100); } },
-    { text: 'MN9を <b>100 Hz以上</b> まで押し上げる', lo: 100, hi: 999, ms: 2500 },
-  ];
-  let mission = -1, cursor = 0, inBandMs = 0, score = 0;
-
-  $('gamebtn').onclick = () => {
-    if (cursor >= MISSIONS.length) {      // finished the set: start over
-      cursor = 0; score = 0;
-      $('scorebadge').textContent = 'SCORE 0';
-      $('scorebadge').classList.remove('on');
-    }
-    mission = cursor++;
-    inBandMs = 0;
-    showMission();
-  };
-  function showMission() {
-    const m = MISSIONS[mission];
-    if (m.force) m.force();
-    $('mission').innerHTML = `ミッション ${mission + 1}/${MISSIONS.length}: ${m.text} ` +
-      `<span class="badge on">${(m.ms / 1000).toFixed(1)}秒キープ</span>`;
-    $('gamebtn').textContent = cursor >= MISSIONS.length ? '↻ 最初から' : '⏭ 次のミッション';
-  }
-  function updateMission(mn9Hz, dtMs) {
-    if (mission < 0) return;
-    const m = MISSIONS[mission];
-    const inBand = mn9Hz >= m.lo && mn9Hz <= m.hi;
-    inBandMs = inBand ? inBandMs + dtMs : Math.max(0, inBandMs - dtMs * 0.5);
-    if (inBandMs >= m.ms) {
-      score += 100;
-      $('scorebadge').textContent = 'SCORE ' + score;
-      $('scorebadge').classList.add('on');
-      $('mission').innerHTML = `<b>クリア!</b> ミッション ${mission + 1} 達成 — ` +
-        `次へ進むか、自由に触ってみてください`;
-      mission = -1;
-      inBandMs = 0;
-    } else {
-      const pct = Math.round(inBandMs / m.ms * 100);
-      $('mission').querySelector('.badge').textContent =
-        `${(inBandMs / 1000).toFixed(1)} / ${(m.ms / 1000).toFixed(1)}秒  ${pct}%`;
-      $('mission').querySelector('.badge').classList.toggle('on', inBand);
-    }
-  }
-
-  // ---- scatter layout (coronal projection of real coordinates) ----
-  const scatter = $('scatter'), sctx = scatter.getContext('2d');
   let sx = null, sy = null;
-  function layoutScatter() {
-    const p = net.pos, n = net.n;
+  function layout() {
+    const p = net().pos, n = net().n;
     let x0 = 1e9, x1 = -1e9, y0 = 1e9, y1 = -1e9;
     for (let i = 0; i < n; i++) {
       if (!p[i][0] && !p[i][1]) continue;
@@ -909,232 +1512,165 @@ const SUBNET = /*__SUBNET__*/;
       sx[i] = (p[i][0] - x0) / (x1 - x0 || 1);
       sy[i] = (p[i][1] - y0) / (y1 - y0 || 1);
     }
+    roles = new Uint8Array(n);
+    for (const i of net().groups.sugar) roles[i] = 1;
+    for (const i of net().groups.bitter) roles[i] = 2;
+    for (const i of net().groups.motor) roles[i] = 3;
+    for (const i of net().groups.mn9) roles[i] = 4;
   }
-  function buildRoles() {
-    const r = new Uint8Array(net.n);
-    for (const i of net.groups.sugar) r[i] = 1;
-    for (const i of net.groups.bitter) r[i] = 2;
-    for (const i of net.groups.motor) r[i] = 3;
-    for (const i of net.groups.mn9) r[i] = 4;
-    return r;
-  }
-  let roles = null;
 
-  // the 4,000 silent dots never move: render them once and blit each frame
   let backdrop = null, backdropW = 0;
-  function renderBackdrop(w, h, dpr) {
-    backdrop = document.createElement('canvas');
-    backdrop.width = w * dpr; backdrop.height = h * dpr;
-    const c = backdrop.getContext('2d');
-    c.setTransform(dpr, 0, 0, dpr, 0, 0);
-    c.fillStyle = '#0B1017'; c.fillRect(0, 0, w, h);
-    const pad = 10, iw = w - pad*2, ih = h - pad*2;
-    c.fillStyle = 'rgba(38,49,63,0.85)';
-    for (let i = 0; i < net.n; i++) c.fillRect(pad + sx[i]*iw, pad + sy[i]*ih, 1.3, 1.3);
-    backdropW = w;
-  }
-
   function drawScatter() {
-    if (!roles) roles = buildRoles();
-    const w = scatter.clientWidth, h = scatter.clientHeight;
-    if (!w) return;
+    const c = $('scatter'), fit = fitCanvas(c);
+    if (!fit) return;
+    const { ctx, w, h } = fit;
     const dpr = devicePixelRatio || 1;
-    if (scatter.width !== w*dpr) { scatter.width = w*dpr; scatter.height = h*dpr; backdrop = null; }
-    if (!backdrop || backdropW !== w) renderBackdrop(w, h, dpr);
-    sctx.setTransform(1, 0, 0, 1, 0, 0);
-    sctx.drawImage(backdrop, 0, 0);
-    sctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-
-    const pad = 10, iw = w - pad*2, ih = h - pad*2;
-    sctx.globalCompositeOperation = 'lighter';
-    for (let i = 0; i < net.n; i++) {
-      const g = glow[i], base = roles[i];
-      if (g < 0.02 && !base) continue;
+    const pd = 10, iw = w - pd*2, ih = h - pd*2;
+    if (!backdrop || backdropW !== w) {
+      backdrop = document.createElement('canvas');
+      backdrop.width = w*dpr; backdrop.height = h*dpr;
+      const b = backdrop.getContext('2d');
+      b.setTransform(dpr, 0, 0, dpr, 0, 0);
+      b.fillStyle = '#0B1017'; b.fillRect(0, 0, w, h);
+      b.fillStyle = 'rgba(38,49,63,0.85)';
+      for (let i = 0; i < net().n; i++) b.fillRect(pd + sx[i]*iw, pd + sy[i]*ih, 1.3, 1.3);
+      backdropW = w;
+    }
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.drawImage(backdrop, 0, 0);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.globalCompositeOperation = 'lighter';
+    for (let i = 0; i < net().n; i++) {
+      const gv = glow[i], base = roles[i];
+      if (gv < 0.02 && !base) continue;
       let col = '102,255,158';
       if (base === 1) col = '79,195,247';
       else if (base === 2) col = '255,180,84';
       else if (base >= 3) col = '255,92,138';
-      sctx.fillStyle = `rgba(${col},${base ? Math.max(0.5, g) : g})`;
-      const s = base === 4 ? 5 : base ? 3 : 1.6 + g*2.2;
-      sctx.fillRect(pad + sx[i]*iw - s/2, pad + sy[i]*ih - s/2, s, s);
+      ctx.fillStyle = `rgba(${col},${base ? Math.max(0.5, gv) : gv})`;
+      const s = base === 4 ? 5 : base ? 3 : 1.6 + gv*2.2;
+      ctx.fillRect(pd + sx[i]*iw - s/2, pd + sy[i]*ih - s/2, s, s);
     }
-    sctx.globalCompositeOperation = 'source-over';
+    ctx.globalCompositeOperation = 'source-over';
   }
 
-  // ---- proboscis ----
-  const flyC = $('fly'), fctx = flyC.getContext('2d');
   let extend = 0;
   function drawFly(mn9Hz) {
-    const w = flyC.clientWidth, h = flyC.clientHeight;
-    if (!w) return;
-    const dpr = devicePixelRatio || 1;
-    if (flyC.width !== w*dpr) { flyC.width = w*dpr; flyC.height = h*dpr; }
-    fctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    fctx.clearRect(0, 0, w, h);
-    fctx.fillStyle = '#0B1017'; fctx.fillRect(0, 0, w, h);
-
-    const target = Math.min(1, mn9Hz / 90);
-    extend += (target - extend) * 0.12;
-
-    const cxp = w * 0.42, cyp = h * 0.42, hr = Math.min(w, h) * 0.24;
-    // head
-    fctx.fillStyle = '#1B2836';
-    fctx.beginPath(); fctx.ellipse(cxp, cyp, hr*1.15, hr, 0, 0, 7); fctx.fill();
-    // eye
-    fctx.fillStyle = '#3A2130';
-    fctx.beginPath(); fctx.ellipse(cxp + hr*0.55, cyp - hr*0.18, hr*0.55, hr*0.68, 0.3, 0, 7); fctx.fill();
-    // proboscis
-    const len = hr * (0.35 + extend * 2.3);
-    fctx.strokeStyle = `rgb(${255},${92 + extend*60},${138})`;
-    fctx.lineWidth = Math.max(4, hr * 0.32);
-    fctx.lineCap = 'round';
-    fctx.beginPath();
-    fctx.moveTo(cxp, cyp + hr*0.75);
-    fctx.lineTo(cxp - len*0.25, cyp + hr*0.75 + len);
-    fctx.stroke();
-    // labellum
-    fctx.fillStyle = `rgba(255,92,138,${0.4 + extend*0.6})`;
-    fctx.beginPath();
-    fctx.ellipse(cxp - len*0.25, cyp + hr*0.75 + len, hr*0.26, hr*0.17, -0.3, 0, 7);
-    fctx.fill();
-
-    fctx.font = '11px ui-monospace, monospace';
-    fctx.fillStyle = extend > 0.25 ? '#66FF9E' : '#4E5D6E';
-    fctx.fillText(extend > 0.25 ? '口吻伸展中 — 食べようとしている' : '口吻は引っ込んでいる', 12, h - 12);
+    const fit = fitCanvas($('fly'));
+    if (!fit) return;
+    const { ctx, w, h } = fit;
+    ctx.fillStyle = '#0B1017'; ctx.fillRect(0, 0, w, h);
+    extend += (Math.min(1, mn9Hz / 90) - extend) * 0.12;
+    const cxp = w*0.42, cyp = h*0.42, hr = Math.min(w, h)*0.24;
+    ctx.fillStyle = '#1B2836';
+    ctx.beginPath(); ctx.ellipse(cxp, cyp, hr*1.15, hr, 0, 0, 7); ctx.fill();
+    ctx.fillStyle = '#3A2130';
+    ctx.beginPath(); ctx.ellipse(cxp + hr*0.55, cyp - hr*0.18, hr*0.55, hr*0.68, 0.3, 0, 7); ctx.fill();
+    const len = hr * (0.35 + extend*2.3);
+    ctx.strokeStyle = `rgb(255,${(92 + extend*60)|0},138)`;
+    ctx.lineWidth = Math.max(4, hr*0.32); ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(cxp, cyp + hr*0.75);
+    ctx.lineTo(cxp - len*0.25, cyp + hr*0.75 + len);
+    ctx.stroke();
+    ctx.fillStyle = `rgba(255,92,138,${0.4 + extend*0.6})`;
+    ctx.beginPath();
+    ctx.ellipse(cxp - len*0.25, cyp + hr*0.75 + len, hr*0.26, hr*0.17, -0.3, 0, 7);
+    ctx.fill();
+    ctx.font = '11px ui-monospace, monospace';
+    ctx.fillStyle = extend > 0.25 ? '#66FF9E' : '#4E5D6E';
+    ctx.fillText(extend > 0.25 ? '口吻伸展中 — 食べようとしている' : '口吻は引っ込んでいる', 12, h - 12);
   }
 
-  // ---- trace ----
-  const trace = $('trace'), tctx = trace.getContext('2d');
   function drawTrace() {
-    const w = trace.clientWidth, h = trace.clientHeight;
-    if (!w) return;
-    const dpr = devicePixelRatio || 1;
-    if (trace.width !== w*dpr) { trace.width = w*dpr; trace.height = h*dpr; }
-    tctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    tctx.fillStyle = '#0B1017'; tctx.fillRect(0, 0, w, h);
-    const MAX = 160, yOf = v => h - 14 - (Math.min(v, MAX)/MAX) * (h - 26);
-
-    tctx.strokeStyle = '#1A2430'; tctx.lineWidth = 1;
-    tctx.font = '10px ui-monospace, monospace'; tctx.fillStyle = '#4E5D6E';
+    const fit = fitCanvas($('trace'));
+    if (!fit) return;
+    const { ctx, w, h } = fit;
+    ctx.fillStyle = '#0B1017'; ctx.fillRect(0, 0, w, h);
+    const MAX = 160, yOf = v => h - 14 - (Math.min(v, MAX)/MAX)*(h - 26);
+    ctx.strokeStyle = '#1A2430'; ctx.lineWidth = 1;
+    ctx.font = '10px ui-monospace, monospace'; ctx.fillStyle = '#4E5D6E';
     for (const v of [0, 40, 80, 120, 160]) {
       const y = yOf(v);
-      tctx.beginPath(); tctx.moveTo(30, y); tctx.lineTo(w - 6, y); tctx.stroke();
-      tctx.fillText(String(v), 6, y + 3);
+      ctx.beginPath(); ctx.moveTo(30, y); ctx.lineTo(w - 6, y); ctx.stroke();
+      ctx.fillText(String(v), 6, y + 3);
     }
-
-    // target band of the active mission
-    if (mission >= 0) {
-      const m = MISSIONS[mission];
-      const yHi = yOf(Math.min(m.hi, MAX)), yLo = yOf(m.lo);
-      tctx.fillStyle = 'rgba(102,255,158,0.10)';
-      tctx.fillRect(30, yHi, w - 36, yLo - yHi);
-      tctx.strokeStyle = 'rgba(102,255,158,0.45)';
-      tctx.setLineDash([4, 4]);
-      tctx.beginPath(); tctx.moveTo(30, yHi); tctx.lineTo(w-6, yHi);
-      tctx.moveTo(30, yLo); tctx.lineTo(w-6, yLo); tctx.stroke();
-      tctx.setLineDash([]);
-    }
-
-    tctx.strokeStyle = '#FF5C8A'; tctx.lineWidth = 1.8;
-    tctx.beginPath();
+    ctx.strokeStyle = '#FF5C8A'; ctx.lineWidth = 1.8;
+    ctx.beginPath();
     for (let k = 0; k < HIST; k++) {
       const i = (histPos + k) % HIST;
-      const x = 30 + (k / (HIST - 1)) * (w - 36);
-      const y = yOf(hist[i]);
-      k ? tctx.lineTo(x, y) : tctx.moveTo(x, y);
+      const x = 30 + (k/(HIST-1))*(w-36), y = yOf(hist[i]);
+      k ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
     }
-    tctx.stroke();
-
-    tctx.fillStyle = '#4E5D6E';
-    tctx.fillText('MN9 Hz', 30, 11);
-    tctx.fillText('← 6秒前', w - 96, h - 3);
-  }
-
-  // ---- main loop ----
-  let lastTick = 0, acc = 0, stepBudget = 120, rtEwma = 0, uiAcc = 0;
-
-  function tick(now) {
-    requestAnimationFrame(tick);
-    if (!running) return;
-    const dt = Math.min(100, now - lastTick);
-    lastTick = now;
-
-    // advance the brain, keeping the frame responsive
-    const want = Math.round(dt * 10);                 // 10 steps per ms of real time
-    const steps = Math.min(want, stepBudget);
-    const t0 = performance.now();
-    brain.runSteps(steps);
-    const cost = performance.now() - t0;
-    // aim to spend ~9 ms of each frame simulating
-    if (cost > 11 && stepBudget > 20) stepBudget -= 10;
-    else if (cost < 7 && stepBudget < 400) stepBudget += 10;
-    const rt = steps / Math.max(want, 1);
-    rtEwma = rtEwma ? rtEwma * 0.9 + rt * 0.1 : rt;
-
-    // decay glow, harvest spike counts
-    const sp = brain.spikes;
-    let total = 0;
-    for (let i = 0; i < net.n; i++) {
-      glow[i] *= 0.82;
-      if (sp[i]) { glow[i] = 1; total += sp[i]; }
-    }
-    const mn9Idx = net.groups.mn9[0];
-    const mn9Spikes = sp[mn9Idx] || 0;
-    sp.fill(0);
-
-    const simSec = steps * 1e-4;
-    const mn9Hz = simSec > 0 ? mn9Spikes / simSec : 0;
-    const allHz = simSec > 0 ? total / simSec : 0;
-
-    // smooth the readouts (single frames are very noisy)
-    acc = acc * 0.82 + mn9Hz * 0.18;
-    uiAcc = uiAcc * 0.82 + allHz * 0.18;
-
-    hist[histPos] = acc;
-    histPos = (histPos + 1) % HIST;
-
-    updateMission(acc, dt);
-
-    $('mMn9').textContent = acc.toFixed(0);
-    $('mAll').textContent = Math.round(uiAcc).toLocaleString();
-    $('mRt').textContent = 'x' + rtEwma.toFixed(2);
-    $('mTime').textContent = (brain.simMs / 1000).toFixed(1) + ' s';
-
-    drawFly(acc);
-    drawTrace();
-    drawScatter();
-    drawPad();
+    ctx.stroke();
+    ctx.fillStyle = '#4E5D6E';
+    ctx.fillText('MN9 Hz', 30, 11);
+    ctx.fillText('← 6秒前', w - 96, h - 3);
   }
 
   function drawPad() {
-    const w = pad.clientWidth, h = pad.clientHeight;
-    if (!w) return;
-    const dpr = devicePixelRatio || 1;
-    if (pad.width !== w*dpr) { pad.width = w*dpr; pad.height = h*dpr; }
-    pctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    const grad = pctx.createLinearGradient(0, h, w, 0);
-    grad.addColorStop(0, '#0B1017');
-    grad.addColorStop(1, 'rgba(79,195,247,0.10)');
-    pctx.fillStyle = grad; pctx.fillRect(0, 0, w, h);
-    const g2 = pctx.createLinearGradient(0, h, 0, 0);
-    g2.addColorStop(0, 'rgba(255,180,84,0)');
-    g2.addColorStop(1, 'rgba(255,180,84,0.14)');
-    pctx.fillStyle = g2; pctx.fillRect(0, 0, w, h);
-
-    pctx.strokeStyle = '#1A2430'; pctx.lineWidth = 1;
+    const fit = fitCanvas(pad);
+    if (!fit) return;
+    const { ctx, w, h } = fit;
+    const g1 = ctx.createLinearGradient(0, h, w, 0);
+    g1.addColorStop(0, '#0B1017'); g1.addColorStop(1, 'rgba(79,195,247,0.10)');
+    ctx.fillStyle = g1; ctx.fillRect(0, 0, w, h);
+    const g2 = ctx.createLinearGradient(0, h, 0, 0);
+    g2.addColorStop(0, 'rgba(255,180,84,0)'); g2.addColorStop(1, 'rgba(255,180,84,0.14)');
+    ctx.fillStyle = g2; ctx.fillRect(0, 0, w, h);
+    ctx.strokeStyle = '#1A2430'; ctx.lineWidth = 1;
     for (let i = 1; i < 4; i++) {
-      pctx.beginPath(); pctx.moveTo(w*i/4, 0); pctx.lineTo(w*i/4, h); pctx.stroke();
-      pctx.beginPath(); pctx.moveTo(0, h*i/4); pctx.lineTo(w, h*i/4); pctx.stroke();
+      ctx.beginPath(); ctx.moveTo(w*i/4, 0); ctx.lineTo(w*i/4, h); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(0, h*i/4); ctx.lineTo(w, h*i/4); ctx.stroke();
     }
     const x = (sugarHz/200)*w, y = h - (bitterHz/200)*h;
-    pctx.strokeStyle = 'rgba(215,225,236,0.35)';
-    pctx.beginPath(); pctx.moveTo(x, 0); pctx.lineTo(x, h); pctx.moveTo(0, y); pctx.lineTo(w, y); pctx.stroke();
-    pctx.fillStyle = '#66FF9E';
-    pctx.beginPath(); pctx.arc(x, y, 6, 0, 7); pctx.fill();
+    ctx.strokeStyle = 'rgba(215,225,236,0.35)';
+    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke();
+    ctx.fillStyle = '#66FF9E';
+    ctx.beginPath(); ctx.arc(x, y, 6, 0, 7); ctx.fill();
+    ctx.font = '10px ui-monospace, monospace';
+    ctx.fillStyle = '#4FC3F7'; ctx.fillText('砂糖 →', w - 52, h - 8);
+    ctx.fillStyle = '#FFB454'; ctx.fillText('↑ 苦味', 8, 14);
+  }
 
-    pctx.font = '10px ui-monospace, monospace';
-    pctx.fillStyle = '#4FC3F7'; pctx.fillText('砂糖 →', w - 52, h - 8);
-    pctx.fillStyle = '#FFB454'; pctx.fillText('↑ 苦味', 8, 14);
+  let last = 0, budget = 120, rtEwma = 0, mn9 = 0, allHz = 0;
+  function tick(now) {
+    requestAnimationFrame(tick);
+    if (!brain || !Visible.has('rig')) { last = now; return; }
+    const dt = Math.min(100, now - last);
+    last = now;
+
+    const want = Math.round(dt * 10);
+    const steps = Math.min(want, budget);
+    const t0 = performance.now();
+    brain.runSteps(steps);
+    const cost = performance.now() - t0;
+    if (cost > 11 && budget > 20) budget -= 10;
+    else if (cost < 7 && budget < 400) budget += 10;
+    const rt = steps / Math.max(want, 1);
+    rtEwma = rtEwma ? rtEwma*0.9 + rt*0.1 : rt;
+
+    const sp = brain.spikes;
+    let total = 0;
+    for (let i = 0; i < net().n; i++) {
+      glow[i] *= 0.82;
+      if (sp[i]) { glow[i] = 1; total += sp[i]; }
+    }
+    const mn9Spikes = sp[net().groups.mn9[0]] || 0;
+    sp.fill(0);
+    const simSec = steps * 1e-4;
+    mn9 = mn9*0.82 + (simSec ? mn9Spikes/simSec : 0)*0.18;
+    allHz = allHz*0.82 + (simSec ? total/simSec : 0)*0.18;
+
+    hist[histPos] = mn9;
+    histPos = (histPos + 1) % HIST;
+
+    $('mMn9').textContent = mn9.toFixed(0);
+    $('mAll').textContent = Math.round(allHz).toLocaleString();
+    $('mRt').textContent = 'x' + rtEwma.toFixed(2);
+    $('mTime').textContent = (brain.simMs/1000).toFixed(1) + ' s';
+
+    drawFly(mn9); drawTrace(); drawScatter(); drawPad();
   }
 })();
 </script>
