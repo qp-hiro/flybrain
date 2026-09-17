@@ -1,5 +1,9 @@
 # flybrain — ショウジョウバエ全脳をPCで動かす
 
+**▶ ブラウザで今すぐ見る: https://qp-hiro.github.io/flybrain/**
+（インストール不要。砂糖刺激に対する全脳スパイク伝播の3D再生）
+
+
 FlyWireコネクトーム（139,255ニューロン・5,450万シナプス）に基づく
 **ショウジョウバエ全脳スパイキングシミュレーション**の遊び場です。
 
@@ -42,8 +46,8 @@ python viz_export.py results/my_first_taste.parquet
 python build_page.py              # -> docs/index.html（自己完結・オフライン動作）
 ```
 
-`docs/index.html` をブラウザで開くだけ。GitHub Pagesを有効にすればURLを共有するだけで
-誰でも遊べます。
+`docs/index.html` をブラウザで開くだけ。mainにpushすると
+https://qp-hiro.github.io/flybrain/ が自動更新されるので、URLを共有するだけで誰でも遊べます。
 
 ### 3. 外部のモノと繋ぐ（リアルタイムI/Oブリッジ）
 
