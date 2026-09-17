@@ -1,0 +1,416 @@
+<title>Fly Brain Live — ショウジョウバエ全脳スパイクビューア</title>
+<style>
+  :root {
+    --bg: #0A0E14;
+    --panel: rgba(19, 26, 36, 0.88);
+    --line: #223041;
+    --text: #D7E1EC;
+    --muted: #7C8B9D;
+    --spike: #66FF9E;
+    --input: #4FC3F7;
+    --output: #FF5C8A;
+    --mono: ui-monospace, "Cascadia Mono", Consolas, "Courier New", monospace;
+    --sans: system-ui, -apple-system, "Segoe UI", "Hiragino Sans", "Noto Sans JP", sans-serif;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    overflow: hidden;
+  }
+  #gl { position: fixed; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
+
+  .hud { position: fixed; z-index: 2; }
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 12px 14px;
+    backdrop-filter: blur(6px);
+  }
+
+  #title { top: 16px; left: 16px; max-width: 420px; }
+  #title h1 {
+    font-family: var(--mono);
+    font-size: 14px;
+    letter-spacing: 0.14em;
+    color: var(--spike);
+    font-weight: 600;
+  }
+  #title p { font-size: 12px; color: var(--muted); margin-top: 6px; line-height: 1.6; }
+  #title .stats { font-family: var(--mono); font-size: 11px; color: var(--text); margin-top: 8px; line-height: 1.7; }
+  #title .stats b { color: var(--spike); font-weight: 600; }
+
+  #legend { top: 16px; right: 16px; font-size: 12px; }
+  #legend div { display: flex; align-items: center; gap: 8px; margin: 4px 0; }
+  .dot { width: 9px; height: 9px; border-radius: 50%; flex: none; }
+  #live {
+    font-family: var(--mono); font-size: 12px; margin-top: 10px;
+    border-top: 1px solid var(--line); padding-top: 8px; line-height: 1.8;
+    font-variant-numeric: tabular-nums;
+  }
+  #live .val { color: var(--spike); }
+  #live .mn9 { color: var(--output); }
+
+  #controls {
+    bottom: 16px; left: 50%; transform: translateX(-50%);
+    width: min(860px, calc(100vw - 32px));
+    display: flex; flex-direction: column; gap: 8px;
+  }
+  #raster { width: 100%; height: 64px; display: block; cursor: crosshair; border-radius: 4px; padding: 0; }
+  #bar { display: flex; align-items: center; gap: 12px; font-family: var(--mono); font-size: 12px; }
+  button, select {
+    font-family: var(--mono); font-size: 12px;
+    background: #1A2432; color: var(--text);
+    border: 1px solid var(--line); border-radius: 4px;
+    padding: 5px 12px; cursor: pointer;
+  }
+  button:hover { border-color: var(--spike); color: var(--spike); }
+  button:focus-visible, select:focus-visible, #raster:focus-visible { outline: 2px solid var(--input); outline-offset: 2px; }
+  #time { font-variant-numeric: tabular-nums; min-width: 9ch; }
+  #hint { color: var(--muted); margin-left: auto; }
+
+  #tip {
+    position: fixed; z-index: 3; pointer-events: none; display: none;
+    font-family: var(--mono); font-size: 11px;
+    background: var(--panel); border: 1px solid var(--line);
+    padding: 4px 8px; border-radius: 4px; white-space: nowrap;
+  }
+  @media (max-width: 700px) {
+    #title { max-width: calc(100vw - 32px); }
+    #title p { display: none; }
+    #legend { display: none; }
+    #hint { display: none; }
+  }
+  @media (prefers-reduced-motion: reduce) { /* playback is user-initiated; auto-rotation disabled below via JS */ }
+</style>
+
+<canvas id="gl"></canvas>
+
+<div class="hud panel" id="title">
+  <h1>FLY BRAIN LIVE</h1>
+  <p>ショウジョウバエ全脳コネクトーム（FlyWire, 139k neurons）のLIFシミュレーション再生。
+     砂糖受容ニューロン（シアン）を刺激すると、信号が脳を伝わり摂食運動ニューロンMN9（マゼンタ）が発火する。</p>
+  <div class="stats" id="stats"></div>
+</div>
+
+<div class="hud panel" id="legend">
+  <div><span class="dot" style="background:var(--input)"></span>砂糖受容ニューロン（入力）</div>
+  <div><span class="dot" style="background:var(--output)"></span>MN9 摂食運動ニューロン（出力）</div>
+  <div><span class="dot" style="background:var(--spike)"></span>スパイク発火</div>
+  <div><span class="dot" style="background:#26313F"></span>沈黙ニューロン（背景 40k）</div>
+  <div id="live">
+    発火率 <span class="val" id="rate">0</span> spk/ms<br>
+    MN9 <span class="mn9" id="mn9rate">0.0</span> Hz
+  </div>
+</div>
+
+<div class="hud" id="controls">
+  <canvas id="raster" class="panel" tabindex="0" aria-label="スパイクラスター・シークバー"></canvas>
+  <div class="panel" id="bar">
+    <button id="play">再生</button>
+    <span id="time">0.0 ms</span>
+    <select id="speed" aria-label="再生速度">
+      <option value="0.01">1/100x</option>
+      <option value="0.02" selected>1/50x</option>
+      <option value="0.05">1/20x</option>
+      <option value="0.2">1/5x</option>
+      <option value="1">1x</option>
+    </select>
+    <span id="hint">ドラッグ: 回転 / ホイール: ズーム / Space: 再生</span>
+  </div>
+</div>
+
+<div id="tip"></div>
+
+<script>
+const DATA = /*__DATA__*/;
+
+// ---------- data prep ----------
+const A = DATA.neurons, B = DATA.backdrop, S = DATA.spikes;
+const nA = A.x.length, nB = B.x.length, nS = S.t_ds.length;
+const DUR = DATA.meta.duration_ms;
+
+// center & scale to unit-ish space
+let cx = 0, cy = 0, cz = 0;
+for (let i = 0; i < nB; i++) { cx += B.x[i]; cy += B.y[i]; cz += B.z[i]; }
+cx /= nB; cy /= nB; cz /= nB;
+let span = 0;
+for (let i = 0; i < nB; i++) span = Math.max(span, Math.abs(B.x[i]-cx), Math.abs(B.y[i]-cy), Math.abs(B.z[i]-cz));
+const K = 1 / span;
+const norm = (xs, ys, zs, n) => {
+  const p = new Float32Array(n * 3);
+  for (let i = 0; i < n; i++) {
+    p[i*3]   =  (xs[i] - cx) * K;
+    p[i*3+1] = -(ys[i] - cy) * K;   // FAFB y grows ventrally; flip for screen
+    p[i*3+2] =  (zs[i] - cz) * K;
+  }
+  return p;
+};
+const posA = norm(A.x, A.y, A.z, nA);
+const posB = norm(B.x, B.y, B.z, nB);
+
+// per-neuron role color
+const colA = new Float32Array(nA * 3);
+for (let i = 0; i < nA; i++) {
+  let c = [0.35, 0.45, 0.55];                       // silent-but-active base
+  if (A.role[i] === 'sugar') c = [0.31, 0.76, 0.97];
+  if (A.role[i] === 'mn9')   c = [1.00, 0.36, 0.54];
+  colA.set(c, i * 3);
+}
+const intensity = new Float32Array(nA);             // glow, decays
+
+// spike index sorted by time (already sorted at export)
+let spikeCursor = 0;
+
+// MN9 indices for live rate
+const mn9Idx = [];
+for (let i = 0; i < nA; i++) if (A.role[i] === 'mn9') mn9Idx.push(i);
+const mn9Times = [];
+for (let s = 0; s < nS; s++) if (mn9Idx.includes(S.n[s])) mn9Times.push(S.t_ds[s] / 10);
+
+// ---------- WebGL ----------
+const canvas = document.getElementById('gl');
+const gl = canvas.getContext('webgl', { antialias: true });
+const VS = `
+attribute vec3 p; attribute vec3 col; attribute float glow;
+uniform mat4 mvp; uniform float psize;
+varying vec3 vc; varying float vg;
+void main(){
+  gl_Position = mvp * vec4(p, 1.0);
+  gl_PointSize = psize * (1.0 + 2.5 * glow);
+  vc = col; vg = glow;
+}`;
+const FS = `
+precision mediump float;
+varying vec3 vc; varying float vg;
+uniform float alpha;
+void main(){
+  vec2 d = gl_PointCoord - 0.5;
+  float r = length(d);
+  if (r > 0.5) discard;
+  float soft = smoothstep(0.5, 0.1, r);
+  vec3 spike = vec3(0.4, 1.0, 0.62);
+  vec3 c = mix(vc, spike, clamp(vg, 0.0, 1.0));
+  gl_FragColor = vec4(c, alpha * soft * (0.55 + 0.45 * vg));
+}`;
+function shader(type, src) {
+  const s = gl.createShader(type);
+  gl.shaderSource(s, src); gl.compileShader(s);
+  if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw gl.getShaderInfoLog(s);
+  return s;
+}
+const prog = gl.createProgram();
+gl.attachShader(prog, shader(gl.VERTEX_SHADER, VS));
+gl.attachShader(prog, shader(gl.FRAGMENT_SHADER, FS));
+gl.linkProgram(prog);
+gl.useProgram(prog);
+const loc = {
+  p: gl.getAttribLocation(prog, 'p'),
+  col: gl.getAttribLocation(prog, 'col'),
+  glow: gl.getAttribLocation(prog, 'glow'),
+  mvp: gl.getUniformLocation(prog, 'mvp'),
+  psize: gl.getUniformLocation(prog, 'psize'),
+  alpha: gl.getUniformLocation(prog, 'alpha'),
+};
+function buf(data) { const b = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, b); gl.bufferData(gl.ARRAY_BUFFER, data, gl.STATIC_DRAW); return b; }
+const bPosB = buf(posB);
+const bPosA = buf(posA);
+const bColA = buf(colA);
+const bGlowA = gl.createBuffer();
+gl.bindBuffer(gl.ARRAY_BUFFER, bGlowA);
+gl.bufferData(gl.ARRAY_BUFFER, intensity, gl.DYNAMIC_DRAW);
+const bColB = buf((() => { const c = new Float32Array(nB * 3); for (let i = 0; i < nB; i++) c.set([0.149, 0.192, 0.247], i*3); return c; })());
+const bGlowB = buf(new Float32Array(nB));
+
+gl.enable(gl.BLEND);
+gl.blendFunc(gl.SRC_ALPHA, gl.ONE);   // additive: fluorescence
+gl.clearColor(0.039, 0.055, 0.078, 1);
+
+// ---------- camera ----------
+let rotX = 0.35, rotY = -0.5, zoom = 1.6;
+const M = new Float32Array(16);
+function mvp(w, h) {
+  const cy_ = Math.cos(rotY), sy = Math.sin(rotY), cx_ = Math.cos(rotX), sx = Math.sin(rotX);
+  // rotY about Y, rotX about X, then scale & aspect & mild perspective-free ortho
+  const s = zoom, aspect = h / w;
+  // column-major
+  M[0] = s*cy_*aspect;      M[1] = s*sy*sx;    M[2]  = -sy*cx_*0.5; M[3] = 0;
+  M[4] = 0;                 M[5] = s*cx_;      M[6]  = sx*0.5;      M[7] = 0;
+  M[8] = s*sy*aspect;       M[9] = -s*cy_*sx;  M[10] = cy_*cx_*0.5; M[11] = 0;
+  M[12] = 0; M[13] = 0; M[14] = 0; M[15] = 1;
+  return M;
+}
+function project(i) {  // active neuron i -> screen px (for hover labels)
+  const x = posA[i*3], y = posA[i*3+1], z = posA[i*3+2];
+  const ndcX = M[0]*x + M[4]*y + M[8]*z;
+  const ndcY = M[1]*x + M[5]*y + M[9]*z;
+  return [(ndcX * 0.5 + 0.5) * canvas.clientWidth, (1 - (ndcY * 0.5 + 0.5)) * canvas.clientHeight];
+}
+
+// ---------- playback ----------
+let playing = false, simT = 0, speed = 0.02, lastWall = 0;
+const TAU_GLOW = 40; // ms decay
+const playBtn = document.getElementById('play');
+const timeEl = document.getElementById('time');
+const rateEl = document.getElementById('rate');
+const mn9El = document.getElementById('mn9rate');
+
+function seek(t) {
+  simT = Math.max(0, Math.min(DUR, t));
+  intensity.fill(0);
+  spikeCursor = 0;
+  while (spikeCursor < nS && S.t_ds[spikeCursor] / 10 < simT) {
+    const dt = simT - S.t_ds[spikeCursor] / 10;
+    if (dt < TAU_GLOW * 5) {
+      const v = Math.exp(-dt / TAU_GLOW);
+      const n = S.n[spikeCursor];
+      if (v > intensity[n]) intensity[n] = v;
+    }
+    spikeCursor++;
+  }
+}
+function togglePlay() {
+  playing = !playing;
+  if (playing && simT >= DUR) seek(0);
+  playBtn.textContent = playing ? '一時停止' : '再生';
+}
+playBtn.onclick = togglePlay;
+document.addEventListener('keydown', e => {
+  if (e.code === 'Space' && !['SELECT', 'BUTTON'].includes(e.target.tagName)) { e.preventDefault(); togglePlay(); }
+});
+document.getElementById('speed').onchange = e => speed = parseFloat(e.target.value);
+
+// ---------- raster / seek bar ----------
+const raster = document.getElementById('raster');
+const rctx = raster.getContext('2d');
+const histAll = new Float32Array(DUR);
+const histMN9 = new Float32Array(DUR);
+for (let s = 0; s < nS; s++) {
+  const ms = Math.min(DUR - 1, Math.floor(S.t_ds[s] / 10));
+  histAll[ms]++;
+}
+for (const t of mn9Times) histMN9[Math.min(DUR - 1, Math.floor(t))]++;
+const histMax = Math.max(...histAll);
+
+function drawRaster() {
+  const w = raster.clientWidth, h = raster.clientHeight;
+  if (raster.width !== w * devicePixelRatio) { raster.width = w * devicePixelRatio; raster.height = h * devicePixelRatio; }
+  rctx.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
+  rctx.clearRect(0, 0, w, h);
+  const bw = w / DUR;
+  rctx.fillStyle = 'rgba(102,255,158,0.55)';
+  for (let ms = 0; ms < DUR; ms++) {
+    if (!histAll[ms]) continue;
+    const bh = Math.max(1, (histAll[ms] / histMax) * (h - 14));
+    rctx.fillRect(ms * bw, h - bh, Math.max(bw, 1), bh);
+  }
+  rctx.fillStyle = '#FF5C8A';
+  for (let ms = 0; ms < DUR; ms++) if (histMN9[ms]) rctx.fillRect(ms * bw, 2, Math.max(bw, 1), 6);
+  rctx.fillStyle = '#D7E1EC';
+  rctx.fillRect((simT / DUR) * w - 1, 0, 2, h);
+}
+function rasterSeek(e) {
+  const r = raster.getBoundingClientRect();
+  seek(((e.clientX - r.left) / r.width) * DUR);
+}
+raster.addEventListener('pointerdown', e => { rasterSeek(e); raster.setPointerCapture(e.pointerId); });
+raster.addEventListener('pointermove', e => { if (e.buttons) rasterSeek(e); });
+
+// ---------- interaction: rotate / zoom / hover ----------
+let dragging = false, px = 0, py = 0;
+canvas.addEventListener('pointerdown', e => { dragging = true; px = e.clientX; py = e.clientY; canvas.setPointerCapture(e.pointerId); });
+canvas.addEventListener('pointerup', () => dragging = false);
+canvas.addEventListener('pointermove', e => {
+  if (dragging) {
+    rotY += (e.clientX - px) * 0.005;
+    rotX += (e.clientY - py) * 0.005;
+    rotX = Math.max(-1.5, Math.min(1.5, rotX));
+    px = e.clientX; py = e.clientY;
+  } else hover(e);
+});
+canvas.addEventListener('wheel', e => {
+  e.preventDefault();
+  zoom *= Math.exp(-e.deltaY * 0.001);
+  zoom = Math.max(0.4, Math.min(8, zoom));
+}, { passive: false });
+
+const tip = document.getElementById('tip');
+function hover(e) {
+  let best = -1, bd = 12 * 12;
+  for (let i = 0; i < nA; i++) {
+    const [sx, sy] = project(i);
+    const d = (sx - e.clientX) ** 2 + (sy - e.clientY) ** 2;
+    if (d < bd) { bd = d; best = i; }
+  }
+  if (best >= 0) {
+    const name = A.type[best] || A.cls[best];
+    tip.textContent = `${name}  [${A.nt[best]}]`;
+    tip.style.left = (e.clientX + 14) + 'px';
+    tip.style.top = (e.clientY - 8) + 'px';
+    tip.style.display = 'block';
+  } else tip.style.display = 'none';
+}
+
+// ---------- main loop ----------
+document.getElementById('stats').innerHTML =
+  `neurons <b>${DATA.meta.n_neurons_total.toLocaleString()}</b> / active <b>${DATA.meta.n_active}</b><br>` +
+  `spikes <b>${DATA.meta.n_spikes.toLocaleString()}</b> in ${DUR} ms — ${DATA.meta.experiment}`;
+
+function frame(wall) {
+  const dtWall = lastWall ? wall - lastWall : 16;
+  lastWall = wall;
+
+  if (playing) {
+    const dtSim = dtWall * speed;
+    const t1 = simT + dtSim;
+    const decay = Math.exp(-dtSim / TAU_GLOW);
+    for (let i = 0; i < nA; i++) intensity[i] *= decay;
+    while (spikeCursor < nS && S.t_ds[spikeCursor] / 10 <= t1) {
+      intensity[S.n[spikeCursor]] = 1;
+      spikeCursor++;
+    }
+    simT = t1;
+    if (simT >= DUR) { simT = DUR; playing = false; playBtn.textContent = '再生'; }
+  }
+
+  // live meters
+  const ms = Math.min(DUR - 1, Math.floor(simT));
+  rateEl.textContent = histAll[ms].toFixed(0);
+  let mnCount = 0;
+  for (const t of mn9Times) if (t > simT - 100 && t <= simT) mnCount++;
+  mn9El.textContent = (mnCount * 10).toFixed(1);
+  timeEl.textContent = simT.toFixed(1) + ' ms';
+
+  // render
+  const w = canvas.clientWidth * devicePixelRatio, h = canvas.clientHeight * devicePixelRatio;
+  if (canvas.width !== w || canvas.height !== h) { canvas.width = w; canvas.height = h; }
+  gl.viewport(0, 0, w, h);
+  gl.clear(gl.COLOR_BUFFER_BIT);
+  gl.uniformMatrix4fv(loc.mvp, false, mvp(w, h));
+
+  // backdrop
+  gl.uniform1f(loc.psize, 1.6 * devicePixelRatio);
+  gl.uniform1f(loc.alpha, 0.35);
+  gl.bindBuffer(gl.ARRAY_BUFFER, bPosB); gl.enableVertexAttribArray(loc.p); gl.vertexAttribPointer(loc.p, 3, gl.FLOAT, false, 0, 0);
+  gl.bindBuffer(gl.ARRAY_BUFFER, bColB); gl.enableVertexAttribArray(loc.col); gl.vertexAttribPointer(loc.col, 3, gl.FLOAT, false, 0, 0);
+  gl.bindBuffer(gl.ARRAY_BUFFER, bGlowB); gl.enableVertexAttribArray(loc.glow); gl.vertexAttribPointer(loc.glow, 1, gl.FLOAT, false, 0, 0);
+  gl.drawArrays(gl.POINTS, 0, nB);
+
+  // active neurons
+  gl.uniform1f(loc.psize, 5.0 * devicePixelRatio);
+  gl.uniform1f(loc.alpha, 0.95);
+  gl.bindBuffer(gl.ARRAY_BUFFER, bPosA); gl.vertexAttribPointer(loc.p, 3, gl.FLOAT, false, 0, 0);
+  gl.bindBuffer(gl.ARRAY_BUFFER, bColA); gl.vertexAttribPointer(loc.col, 3, gl.FLOAT, false, 0, 0);
+  gl.bindBuffer(gl.ARRAY_BUFFER, bGlowA); gl.bufferData(gl.ARRAY_BUFFER, intensity, gl.DYNAMIC_DRAW); gl.vertexAttribPointer(loc.glow, 1, gl.FLOAT, false, 0, 0);
+  gl.drawArrays(gl.POINTS, 0, nA);
+
+  drawRaster();
+  requestAnimationFrame(frame);
+}
+seek(0);
+if (!matchMedia('(prefers-reduced-motion: reduce)').matches) togglePlay();
+requestAnimationFrame(frame);
+</script>

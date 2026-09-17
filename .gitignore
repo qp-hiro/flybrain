@@ -1,0 +1,12 @@
+# large data files -- fetch with: python scripts/get_data.py
+connectivity_630.parquet
+2023_03_23_completeness_630_final.csv
+neuron_annotations.tsv
+
+# generated
+results/
+viz_data.json
+__pycache__/
+*.pyc
+repo_tree.json
+check_ids.py
