@@ -9,8 +9,10 @@ UDP: Arduino (via a serial bridge), Unity, Max/MSP, TouchDesigner, Python...
 
 Protocol (JSON datagrams, port 8631):
   {"cmd": "stim", "target": "sugar", "rate": 120, "duration_ms": 500}
+  {"cmd": "stim", "target": "bitter", "rate": 100}
+  {"cmd": "stim", "target": "type:R1-6", "rate": 30}         # shine light
   {"cmd": "stim", "target": [720575940660219265], "rate": 80}
-  {"cmd": "stim", "target": "type:MN9", "rate": 0}          # rate 0 stops
+  {"cmd": "stim", "target": "sugar", "rate": 0}              # rate 0 stops
   {"cmd": "subscribe", "target": "mn9"}                      # watch neurons
   {"cmd": "subscribe", "target": "top"}                      # top-10 firing
   {"cmd": "status"}
@@ -35,8 +37,9 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
+from groups import MN9, resolve
 from sim import (DT, DLY_STEPS, RFC_STEPS, V_0, V_RST, V_TH, W_SYN, F_POI,
-                 SUGAR_GRNS, MN9, T_MBR, TAU, load_network)
+                 T_MBR, TAU, load_network)
 
 HERE = Path(__file__).parent
 CHUNK_STEPS = 100  # 10 ms of simulated time per chunk
@@ -114,26 +117,9 @@ class Brain:
         return counts
 
 
-def load_typemap():
-    ann = pd.read_csv(HERE / 'neuron_annotations.tsv', sep='\t',
-                      usecols=['root_id', 'cell_type'])
-    ann = ann.dropna(subset=['cell_type'])
-    return ann.groupby('cell_type')['root_id'].apply(list).to_dict()
-
-
-def resolve(target, brain, typemap):
-    """Turn a protocol target into a list of neuron indices."""
-    if isinstance(target, list):
-        ids = target
-    elif target == 'sugar':
-        ids = list(SUGAR_GRNS)
-    elif target == 'mn9':
-        ids = [MN9]
-    elif isinstance(target, str) and target.startswith('type:'):
-        ids = typemap.get(target[5:], [])
-    else:
-        return []
-    return [brain.id2idx[f] for f in ids if f in brain.id2idx]
+def to_idx(target, brain):
+    """Turn a protocol target (see groups.py) into a list of neuron indices."""
+    return [brain.id2idx[f] for f in resolve(target) if f in brain.id2idx]
 
 
 def main():
@@ -143,7 +129,6 @@ def main():
 
     print('loading network ...', flush=True)
     brain = Brain()
-    typemap = load_typemap()
     print(f'{brain.w.shape[0]:,} neurons ready', flush=True)
 
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -168,12 +153,12 @@ def main():
                 msg = json.loads(data.decode('utf-8'))
                 cmd = msg.get('cmd')
                 if cmd == 'stim':
-                    idx = resolve(msg.get('target'), brain, typemap)
+                    idx = to_idx(msg.get('target'), brain)
                     brain.set_stim(idx, float(msg.get('rate', 0)), msg.get('duration_ms'))
                     sock.sendto(json.dumps({'ok': True, 'stimulating': len(idx)}).encode(), addr)
                 elif cmd == 'subscribe':
                     tgt = msg.get('target', 'top')
-                    subscribers[addr] = set() if tgt == 'top' else set(resolve(tgt, brain, typemap))
+                    subscribers[addr] = set() if tgt == 'top' else set(to_idx(tgt, brain))
                     sock.sendto(json.dumps({'ok': True, 'watching': len(subscribers[addr]) or 'top'}).encode(), addr)
                 elif cmd == 'status':
                     rt = brain.step * DT / max(time.time() - t_wall, 1e-9)
