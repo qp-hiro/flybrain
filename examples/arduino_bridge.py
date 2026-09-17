@@ -49,5 +49,5 @@ while True:
         msg = json.loads(data.decode())
         if 'watched' in msg:
             ser.write(f"M:{msg['watched'].get(MN9, 0)}\n".encode())
-    except socket.timeout:
+    except (socket.timeout, ConnectionResetError):
         pass

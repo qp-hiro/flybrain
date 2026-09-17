@@ -55,6 +55,10 @@ python examples/feed_the_fly.py   # 別ターミナル: キー1-9で砂糖刺激
 UDPでJSONを投げるだけなので、Arduino（`examples/arduino_bridge.py`）、Unity、
 Max/MSP、TouchDesigner等から脳を刺激したり、スパイクで機器を駆動できます。
 
+注意: 全脳シミュレーションは実時間の数十〜数百分の1の速度で進みます
+（`status` コマンドの `realtime_factor` で確認可。CPUの熱状態でも変動します）。
+レポートの `sim_ms` はシミュレーション内時刻です。
+
 プロトコル（詳細は `io_bridge.py` 冒頭のdocstring）:
 
 ```json

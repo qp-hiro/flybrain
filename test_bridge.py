@@ -17,21 +17,23 @@ for _ in range(60):
         data, _ = sock.recvfrom(65536)
         print('status:', data.decode())
         break
-    except socket.timeout:
-        pass
+    except (socket.timeout, ConnectionResetError):
+        pass  # ConnectionResetError: Windows ICMP quirk while the bridge loads
 else:
     raise SystemExit('bridge never answered')
 
+# acks and streaming reports interleave, so don't assume reply order
 sock.sendto(json.dumps({'cmd': 'subscribe', 'target': 'mn9'}).encode(), server)
-print('subscribe ack:', sock.recvfrom(65536)[0].decode())
 sock.sendto(json.dumps({'cmd': 'stim', 'target': 'sugar', 'rate': 150}).encode(), server)
-print('stim ack:', sock.recvfrom(65536)[0].decode())
 
 mn9_total, total, reports = 0, 0, 0
 t0 = time.time()
 last_ms = 0
 while reports < 40 and time.time() - t0 < 120:
-    msg = json.loads(sock.recvfrom(65536)[0].decode())
+    try:
+        msg = json.loads(sock.recvfrom(65536)[0].decode())
+    except ConnectionResetError:
+        continue
     if 'sim_ms' not in msg or 'watched' not in msg:
         continue
     mn9_total += msg['watched'].get(MN9, 0)

@@ -53,7 +53,7 @@ while True:
 
     try:
         data, _ = sock.recvfrom(65536)
-    except socket.timeout:
+    except (socket.timeout, ConnectionResetError):
         continue
     msg = json.loads(data.decode())
     if 'sim_ms' not in msg or 'watched' not in msg:

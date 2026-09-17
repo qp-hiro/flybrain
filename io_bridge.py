@@ -161,6 +161,9 @@ def main():
                 data, addr = sock.recvfrom(65536)
             except BlockingIOError:
                 break
+            except ConnectionResetError:
+                # Windows: ICMP port-unreachable from a vanished client
+                continue
             try:
                 msg = json.loads(data.decode('utf-8'))
                 cmd = msg.get('cmd')
