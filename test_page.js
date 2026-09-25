@@ -83,6 +83,27 @@ try {
   b2.runSteps(5000);
   const mn9Both = b2.spikes[net.groups.mn9[0]] / 0.5;
   check('bitter suppresses feeding', mn9Both === 0, `${mn9Both} Hz`);
+
+  // the puzzle answer shipped on the page must actually work in the page's engine
+  const screenAt = script.indexOf('const SCREEN =');
+  const screenLine = script.slice(screenAt, script.indexOf('\n', screenAt));
+  const SCREEN = JSON.parse(screenLine.slice(screenLine.indexOf('{'),
+                                             screenLine.lastIndexOf('}') + 1));
+  const lesion = [];
+  for (const t of SCREEN.puzzleTypes) if (SCREEN.answer.includes(t.type)) lesion.push(...t.idx);
+  const b3 = new FB.Brain(net, 1000);
+  b3.setStim(net.groups.sugar, 150);
+  b3.setStim(net.groups.bitter, 150);
+  b3.silence(lesion);
+  b3.runSteps(1500);
+  b3.spikes.fill(0);
+  b3.runSteps(5000);
+  const mn9Lesion = b3.spikes[net.groups.mn9[0]] / 0.5;
+  check('puzzle answer makes the fly eat poison', mn9Lesion > 30,
+        `${SCREEN.answer.join('+')} (${lesion.length} neurons) -> ${mn9Lesion} Hz`);
+  check('every answer type is offered in the puzzle',
+        SCREEN.answer.every(t => SCREEN.puzzleTypes.some(p => p.type === t)),
+        `${SCREEN.puzzleTypes.length} types offered`);
   // speed is reported, not asserted: it swings with CPU thermal state
   console.log(`  info  simulation speed  x${rt.toFixed(2)} realtime` +
               (rt < 0.5 ? '  (machine is throttling)' : ''));

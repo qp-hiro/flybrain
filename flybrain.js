@@ -62,6 +62,7 @@ const FlyBrain = (() => {
       this.buf = new Float32Array(DLY_STEPS * n);
       this.stimP = new Float32Array(n);      // per-step event probability
       this.spikes = new Int32Array(n);       // spike counter, caller may reset
+      this.silenced = new Uint8Array(n);     // 1 = spikes, but transmits nothing
       this.step = 0;
       this.rand = makeRng(seed === undefined ? (Math.random() * 2 ** 31) | 0 : seed);
     }
@@ -73,6 +74,13 @@ const FlyBrain = (() => {
       this._stimList = null;
     }
 
+    // silence neurons: they still fire, but their outgoing synapses deliver
+    // nothing -- the same operation as sim.py --silence
+    silence(indices) {
+      for (const i of indices) this.silenced[i] = 1;
+    }
+    clearSilence() { this.silenced.fill(0); }
+
     _stim() {
       if (!this._stimList) {
         const list = [];
@@ -83,7 +91,7 @@ const FlyBrain = (() => {
     }
 
     runSteps(nSteps) {
-      const { n, v, g, rfc, nonref, buf, stimP, spikes } = this;
+      const { n, v, g, rfc, nonref, buf, stimP, spikes, silenced } = this;
       const { indptr, indices, syn } = this.net;
       const stim = this._stim();
       const rand = this.rand;
@@ -112,8 +120,10 @@ const FlyBrain = (() => {
 
         for (let i = 0; i < n; i++) {
           if (!nonref[i] || v[i] <= V_TH) continue;
-          for (let p = indptr[i], e = indptr[i + 1]; p < e; p++) {
-            buf[base + indices[p]] += syn[p] * W_SYN;
+          if (!silenced[i]) {
+            for (let p = indptr[i], e = indptr[i + 1]; p < e; p++) {
+              buf[base + indices[p]] += syn[p] * W_SYN;
+            }
           }
           v[i] = V_RST;
           g[i] = 0;

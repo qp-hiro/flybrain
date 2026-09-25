@@ -12,6 +12,7 @@ template = (HERE / 'page_template.html').read_text(encoding='utf-8')
 pieces = {
     '/*__VIZ_DATA__*/': (HERE / 'viz_data.json').read_text(encoding='utf-8'),
     '/*__SUBNET__*/': (HERE / 'subnet.json').read_text(encoding='utf-8'),
+    '/*__SCREEN__*/': (HERE / 'screen_page.json').read_text(encoding='utf-8'),
     '/*__FLYBRAIN_JS__*/': (HERE / 'flybrain.js').read_text(encoding='utf-8'),
 }
 for token, content in pieces.items():

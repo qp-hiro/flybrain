@@ -215,6 +215,40 @@
   .bar > i { display: block; height: 100%; background: var(--spike); transition: width .12s linear; }
   #verdict { font-family: var(--mono); font-size: 13px; min-height: 1.6em; margin-top: 10px; }
 
+  /* ---------- lesion screen ---------- */
+  .ranklist { display: flex; flex-direction: column; gap: 3px; max-height: 300px; overflow-y: auto; }
+  .rank {
+    display: grid; grid-template-columns: 1fr auto auto; gap: 10px; align-items: baseline;
+    font-family: var(--mono); font-size: 12px; padding: 6px 8px;
+    border: 1px solid transparent; border-radius: 4px; cursor: pointer;
+    background: #101720; text-align: left; color: var(--text); width: 100%;
+  }
+  .rank:hover { border-color: var(--line); }
+  .rank[aria-pressed="true"] { border-color: var(--spike); background: rgba(102,255,158,0.10); }
+  .rank .nt { color: var(--muted); font-size: 10.5px; }
+  .rank .d { font-variant-numeric: tabular-nums; }
+  .rank .d.down { color: var(--mn9); }
+  .rank .d.up { color: var(--spike); }
+  .gauge { display: flex; flex-direction: column; gap: 7px; margin-top: 14px; }
+  .gaugerow { display: flex; align-items: center; gap: 12px; font-family: var(--mono); font-size: 12px; }
+  .glab { width: 5em; flex: none; color: var(--muted); }
+  .gbar { flex: 1; height: 14px; background: #141C27; border-radius: 3px; overflow: hidden; min-width: 0; }
+  .gbar > i { display: block; height: 100%; background: var(--mn9); transition: width .25s ease; }
+  .gbar > i.les { background: var(--spike); }
+  .gval { width: 6em; text-align: right; flex: none; font-variant-numeric: tabular-nums; }
+  #lesionState { font-family: var(--mono); font-size: 12.5px; color: var(--text); min-height: 1.6em; }
+  #puzzleList { display: flex; flex-wrap: wrap; gap: 7px; }
+  .ptype {
+    font-family: var(--mono); font-size: 12px; padding: 6px 11px;
+    border: 1px solid var(--line); border-radius: 999px; background: #141C27;
+    color: var(--muted); cursor: pointer;
+  }
+  .ptype[aria-pressed="true"] { border-color: var(--mn9); color: var(--mn9);
+                                background: rgba(255,92,138,0.12); }
+  .ptype .n { opacity: 0.6; font-size: 10.5px; }
+  #puzzleMsg { font-family: var(--mono); font-size: 12.5px; margin-top: 12px; min-height: 1.6em; }
+  #findings li b { color: var(--text); }
+
   /* ---------- logic ---------- */
   .toggles { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin: 14px 0; }
   .tg {
@@ -360,78 +394,96 @@
   </div>
 </section>
 
-<!-- ============================ COMPUTE ============================ -->
+<!-- ============================ SCREEN ============================ -->
 <section id="logicsec">
   <div class="wide">
     <div class="chapter">
       <span class="num">②</span>
       <div>
-        <h2>Compute · ハエの脳で計算する</h2>
-        <div class="sub">脳を論理ゲートとして使う</div>
+        <h2>Experiment · 生きたハエではできない実験</h2>
+        <div class="sub">ニューロンを1個ずつ消して、食欲のスイッチを探す</div>
       </div>
     </div>
-    <p class="lede">さっきの「甘い、でも苦くない時だけ食べる」という判断は、
-      <b>論理演算そのもの</b>です。</p>
-    <p>砂糖を入力A、苦味を入力B、MN9の発火を出力とみなすと、この回路は
-      <code>A AND NOT B</code> を計算しています。下のボタンで実際に確かめてください。
-      押すたびに、その組み合わせで4,000ニューロンが動いて答えを返します。</p>
+    <p class="lede">ここでやるのは、計算機のほうが得意なことではありません。
+      <b>本物の脳が相手でないと意味がなく、生きている脳では実行できない実験</b>です。</p>
+    <p>生きたハエで狙ったニューロンを黙らせるには、遺伝子操作で数か月。しかも1回の実験で
+      1種類しか試せません。配線図があれば、全部試せます。ここでは砂糖に反応して発火している
+      ニューロン<b id="sN">—</b>個を<b>1個ずつ消して、そのたびに回路を走らせ直しました</b>。
+      同じ数の実験を実験室でやろうとすると、ハエの一生どころか研究者の一生でも足りません。</p>
 
-    <div id="logicboot">
-      <button id="logicbootbtn">▶ 論理ゲートとして起動する</button>
+    <div id="screenboot">
+      <button id="screenbootbtn">▶ 実験結果を開く</button>
     </div>
 
-    <div id="logicbody" hidden>
+    <div id="screenbody" hidden>
       <div class="rig-grid">
         <div class="card">
-          <h4>入力 — input</h4>
-          <div class="toggles">
-            <button class="tg sugar" id="tgA" aria-pressed="false">
-              <span class="dot" style="background:var(--sugar)"></span>A: 砂糖</button>
-            <button class="tg bitter" id="tgB" aria-pressed="false">
-              <span class="dot" style="background:var(--bitter)"></span>B: 苦味</button>
-          </div>
-          <h4 style="margin-top:22px">出力 — MN9</h4>
-          <div id="gateout">
-            <span id="gatebit" class="lo">0</span>
-            <span><span id="gatehz">0.0</span> Hz<br>
-              <span class="note" id="gatestate">口吻は引っ込んでいる</span></span>
-          </div>
+          <h4>消すと食欲が落ちるニューロン — アクセル</h4>
+          <div class="ranklist" id="rankNeed"></div>
         </div>
-
         <div class="card">
-          <h4>真理値表 — 実測値が入ります</h4>
-          <table class="tt">
-            <thead><tr><th>A 砂糖</th><th>B 苦味</th><th>出力</th><th>MN9</th></tr></thead>
-            <tbody id="ttbody">
-              <tr data-k="00"><td>0</td><td>0</td><td class="bit">—</td><td class="hz">—</td></tr>
-              <tr data-k="10"><td>1</td><td>0</td><td class="bit">—</td><td class="hz">—</td></tr>
-              <tr data-k="01"><td>0</td><td>1</td><td class="bit">—</td><td class="hz">—</td></tr>
-              <tr data-k="11"><td>1</td><td>1</td><td class="bit">—</td><td class="hz">—</td></tr>
-            </tbody>
-          </table>
-          <p class="note" id="ttnote" style="margin-top:12px">
-            4通りすべて試すと、この回路が何を計算しているか分かります。</p>
+          <h4>消すと食欲が強まるニューロン — ブレーキ</h4>
+          <div class="ranklist" id="rankBrake"></div>
         </div>
       </div>
 
-      <h3>ハエの脳7個で足し算をする</h3>
-      <p><code>A AND NOT B</code>（NIMPLYと呼ばれる演算）は、定数1と組み合わせると
-        <b>どんな論理回路でも作れる</b>ことが知られています。NOTもANDもORも、
-        この演算だけで組み立てられます。</p>
-      <p>ということは、ハエの脳を並べればコンピュータになります。実際にやってみたのが下の回路です。
-        <b>7匹分の脳＝28,000ニューロン・270万シナプス</b>を使って、1ビットの足し算
-        （半加算器）を組みました。ボタンを押すと、信号が脳から脳へ伝わっていきます。</p>
-
-      <div class="toggles">
-        <button class="tg sugar" id="adA" aria-pressed="false">A = 0</button>
-        <button class="tg sugar" id="adB" aria-pressed="false">B = 0</button>
-        <button id="adRun">▶ 7個の脳で計算する</button>
+      <div class="card" style="margin-top:14px">
+        <h4>選んだニューロンを消して、脳を走らせ直す</h4>
+        <div id="lesionState">上の一覧からニューロンを選んでください</div>
+        <div class="gauge">
+          <div class="gaugerow">
+            <span class="glab">健常</span>
+            <span class="gbar"><i id="gBase" style="width:0%"></i></span>
+            <span class="gval" id="vBase">— Hz</span>
+          </div>
+          <div class="gaugerow">
+            <span class="glab">病変後</span>
+            <span class="gbar"><i id="gLes" class="les" style="width:0%"></i></span>
+            <span class="gval" id="vLes">— Hz</span>
+          </div>
+        </div>
+        <p class="note">シミュレーションはその場で走っています。選び直すたびに
+          4,000ニューロンが最初から動き直します。</p>
       </div>
-      <canvas id="circuit" aria-label="ハエの脳7個で構成した半加算器の回路図"></canvas>
-      <div id="adderout">A と B を選んで実行してください</div>
-      <p class="note">各ゲートは独立した4,000ニューロンの回路です。前のゲートの出力
-        （MN9の発火率）を20Hzで0/1に整えて次の脳の味覚入力に渡しています——
-        論理回路でいうバッファに相当する処理です。それ以外は生の神経活動です。</p>
+
+      <h3>見つかったこと</h3>
+      <ul id="findings"></ul>
+
+      <h3>全脳での答え合わせ</h3>
+      <p>上のスクリーニングは4,000ニューロンの部分回路で回しています。
+        発見が本物かどうかは、<b>12.7万ニューロンの全脳で同じ病変を再現して</b>確かめました
+        （Python側・<span id="wTrials">—</span>試行平均）。</p>
+      <div class="tablewrap">
+        <table id="wholeTable">
+          <thead><tr><th>条件（全脳 127,400ニューロン）</th><th>止めた数</th><th>MN9</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+
+      <h3 id="puzzleTitle">パズル：ハエに毒を食べさせろ</h3>
+      <p>砂糖と苦味を同時に与えると、ハエは食べません。では
+        <b>どのニューロンを黙らせれば、毒入りの餌を食べるようになるでしょうか。</b></p>
+      <p class="note">苦味の受容ニューロン自体を切るのは反則です（味が届かないだけなので）。
+        中枢のニューロンだけで拒否権を無効化してください。
+        止める単位は「細胞タイプ」——実際のハエの遺伝子操作で狙えるのがタイプ単位だからです。
+        つまりここで見つけた答えは、<b>そのまま実験室に持ち込める仮説</b>になります。
+        押すたびに4,000ニューロンが走り直すので、答えは記憶ではなく実測です。</p>
+
+      <div class="card">
+        <div id="puzzleList"></div>
+        <div class="gauge" style="margin-top:14px">
+          <div class="gaugerow">
+            <span class="glab">毒入り餌</span>
+            <span class="gbar"><i id="gPoison" class="les" style="width:0%"></i></span>
+            <span class="gval" id="vPoison">— Hz</span>
+          </div>
+        </div>
+        <div id="puzzleMsg"></div>
+        <div style="margin-top:12px; display:flex; gap:10px; flex-wrap:wrap">
+          <button id="puzzleClear">全部戻す</button>
+          <button id="puzzleHint">答えを見る</button>
+        </div>
+      </div>
     </div>
   </div>
 </section>
@@ -954,6 +1006,7 @@ requestAnimationFrame(frame);
 /*__FLYBRAIN_JS__*/
 
 const SUBNET = /*__SUBNET__*/;
+const SCREEN = /*__SCREEN__*/;
 
 const $ = id => document.getElementById(id);
 
@@ -1208,239 +1261,145 @@ function fitCanvas(c) {
 })();
 
 // ------------------------------------------------------------
-//  2 — the same circuit read as a logic gate, then seven of them
-//      wired into a half adder
+//  2 — the lesion screen: silence neurons and re-run the brain.
+//      Every number here was produced by screen.js / screen_types.js
+//      running this exact engine; nothing is hand-written.
 // ------------------------------------------------------------
 (() => {
-  const ON = 120, THRESH = 20;
-  let gate = null, A = false, Bv = false, hz = 0, stable = 0;
-  const measured = {};
+  const ON = 150, SETTLE = 1500, READ = 5000, EAT = 30;
+  let ready = false, picked = null;
+  const chosenTypes = new Set();
 
-  $('logicbootbtn').onclick = () => {
-    $('logicbootbtn').disabled = true;
+  $('screenbootbtn').onclick = () => {
+    $('screenbootbtn').disabled = true;
     setTimeout(() => {
-      gate = new FlyBrain.Brain(net());
-      $('logicboot').hidden = true;
-      $('logicbody').hidden = false;
-      drawCircuit();
-      requestAnimationFrame(loop);
+      net();
+      $('screenboot').hidden = true;
+      $('screenbody').hidden = false;
+      ready = true;
+      build();
     }, 30);
   };
 
-  function setIn(which, val) {
-    if (which === 'A') { A = val; $('tgA').setAttribute('aria-pressed', val); }
-    else { Bv = val; $('tgB').setAttribute('aria-pressed', val); }
-    stable = 0;
-    if (gate) {
-      gate.setStim(net().groups.sugar, A ? ON : 0);
-      gate.setStim(net().groups.bitter, Bv ? ON : 0);
-    }
-  }
-  $('tgA').onclick = () => setIn('A', !A);
-  $('tgB').onclick = () => setIn('B', !Bv);
-
-  let last = 0;
-  function loop(now) {
-    requestAnimationFrame(loop);
-    if (!gate || !Visible.has('logicsec')) { last = now; return; }
-    const dt = Math.min(0.05, (now - last) / 1000);
-    last = now;
-
-    const steps = Math.min(Math.round(dt * 10000), 220);
-    gate.runSteps(steps);
-    const s = gate.spikes[net().groups.mn9[0]] || 0;
-    gate.spikes.fill(0);
-    hz = hz * 0.8 + (steps ? s / (steps * 1e-4) : 0) * 0.2;
-    stable += dt;
-
-    const bit = hz > THRESH ? 1 : 0;
-    $('gatebit').textContent = bit;
-    $('gatebit').className = bit ? 'hi' : 'lo';
-    $('gatehz').textContent = hz.toFixed(1);
-    $('gatestate').textContent = bit ? '口吻を伸ばしている（＝出力 1）' : '口吻は引っ込んでいる（＝出力 0）';
-
-    // record a row once the circuit has settled in this combination
-    const key = (A ? '1' : '0') + (Bv ? '1' : '0');
-    for (const tr of $('ttbody').children) tr.classList.toggle('cur', tr.dataset.k === key);
-    if (stable > 0.8) {
-      measured[key] = { bit, hz };
-      const tr = $('ttbody').querySelector(`[data-k="${key}"]`);
-      tr.querySelector('.bit').textContent = bit;
-      tr.querySelector('.bit').className = 'bit ' + (bit ? 'hi' : 'lo');
-      tr.querySelector('.hz').textContent = hz.toFixed(0) + ' Hz';
-      if (Object.keys(measured).length === 4 && !$('ttnote').dataset.done) {
-        $('ttnote').dataset.done = '1';
-        $('ttnote').innerHTML =
-          '出力が1になるのは<b>Aが1でBが0のとき</b>だけ。これは <code>A AND NOT B</code>' +
-          '（NIMPLY）という論理演算です。ハエの脳が計算していたのはこれでした。';
-      }
-    }
-    if (adder.job) stepAdder();
+  // run the circuit once, with an optional lesion, and report MN9
+  function mn9(bitter, silenced) {
+    const b = new FlyBrain.Brain(net(), 1000);
+    b.setStim(net().groups.sugar, ON);
+    b.setStim(net().groups.bitter, bitter ? ON : 0);
+    if (silenced && silenced.length) b.silence(silenced);
+    b.runSteps(SETTLE);
+    b.spikes.fill(0);
+    b.runSteps(READ);
+    return b.spikes[net().groups.mn9[0]] / (READ * 1e-4);
   }
 
-  // ---- half adder out of seven fly brains ----
-  //   g1 = A ¬B   g2 = B ¬A   g6 = ¬B
-  //   g3 = ¬g1    g7 = A ¬g6  (= A AND B = CARRY)
-  //   g4 = g3 ¬g2 (= NOR)     g5 = ¬g4 (= XOR = SUM)
-  const GATES = [
-    { id: 'g1', label: 'A ∧ ¬B', x: 0.26, y: 0.14, in: ['A', 'B'] },
-    { id: 'g2', label: 'B ∧ ¬A', x: 0.26, y: 0.40, in: ['B', 'A'] },
-    { id: 'g6', label: '¬B',     x: 0.26, y: 0.80, in: ['1', 'B'] },
-    { id: 'g3', label: '¬g1',    x: 0.48, y: 0.14, in: ['1', 'g1'] },
-    { id: 'g7', label: 'CARRY',  x: 0.48, y: 0.80, in: ['A', 'g6'] },
-    { id: 'g4', label: 'NOR',    x: 0.68, y: 0.27, in: ['g3', 'g2'] },
-    { id: 'g5', label: 'SUM',    x: 0.88, y: 0.27, in: ['1', 'g4'] },
-  ];
-  const adder = { A: false, B: false, job: null, val: {}, active: null };
+  const pct = hz => Math.max(0, Math.min(100, hz / 220 * 100));
 
-  $('adA').onclick = () => {
-    adder.A = !adder.A;
-    $('adA').textContent = 'A = ' + (adder.A ? 1 : 0);
-    $('adA').setAttribute('aria-pressed', adder.A);
-    resetAdder();
-  };
-  $('adB').onclick = () => {
-    adder.B = !adder.B;
-    $('adB').textContent = 'B = ' + (adder.B ? 1 : 0);
-    $('adB').setAttribute('aria-pressed', adder.B);
-    resetAdder();
-  };
-  $('adRun').onclick = () => {
-    resetAdder();
-    adder.job = { i: 0, phase: 'settle', left: 1200, brain: null };
-    $('adRun').disabled = true;
-    $('adderout').textContent = '計算中 …';
-    startGate();
-  };
-  function resetAdder() {
-    adder.job = null; adder.val = {}; adder.active = null;
-    $('adRun').disabled = false;
-    $('adderout').textContent = '「7個の脳で計算する」を押してください';
-    drawCircuit();
-  }
-  function inputBit(name) {
-    if (name === '1') return true;
-    if (name === 'A') return adder.A;
-    if (name === 'B') return adder.B;
-    return !!adder.val[name];
-  }
-  function startGate() {
-    const gdef = GATES[adder.job.i];
-    const b = new FlyBrain.Brain(net(), (adder.job.i + 1) * 7919);
-    b.setStim(net().groups.sugar, inputBit(gdef.in[0]) ? ON : 0);
-    b.setStim(net().groups.bitter, inputBit(gdef.in[1]) ? ON : 0);
-    adder.job.brain = b;
-    adder.job.phase = 'settle';
-    adder.job.left = 1200;          // 120 ms to settle
-    adder.active = gdef.id;
-  }
-  function stepAdder() {
-    const job = adder.job;
-    const n = Math.min(job.left, 170);
-    job.brain.runSteps(n);
-    job.left -= n;
-    if (job.left > 0) { drawCircuit(); return; }
-    if (job.phase === 'settle') {
-      job.brain.spikes.fill(0);
-      job.phase = 'read';
-      job.left = 2000;              // 200 ms to count spikes
-      drawCircuit();
-      return;
-    }
-    const gdef = GATES[job.i];
-    const h = job.brain.spikes[net().groups.mn9[0]] / 0.2;
-    adder.val[gdef.id] = h > THRESH;
-    adder.val[gdef.id + '_hz'] = h;
-    job.i++;
-    if (job.i < GATES.length) { startGate(); drawCircuit(); return; }
+  function build() {
+    $('sN').textContent = SCREEN.meta.nTested.toLocaleString();
 
-    adder.job = null; adder.active = null;
-    $('adRun').disabled = false;
-    const sum = adder.val.g5 ? 1 : 0, carry = adder.val.g7 ? 1 : 0;
-    const a = adder.A ? 1 : 0, bb = adder.B ? 1 : 0;
-    const okk = (sum === (a ^ bb)) && (carry === (a & bb));
-    $('adderout').innerHTML =
-      `${a} + ${bb} = <b>${carry}${sum}</b>（2進） = <b>${carry * 2 + sum}</b>　` +
-      `<span class="note">SUM=${sum} CARRY=${carry} ・ ` +
-      `${okk ? '正解' : '不一致'} ・ 7個の脳＝28,000ニューロンが計算しました</span>`;
-    drawCircuit();
-  }
-
-  function drawCircuit() {
-    const fit = fitCanvas($('circuit'));
-    if (!fit) return;
-    const { ctx, w, h } = fit;
-    ctx.fillStyle = '#0B1017'; ctx.fillRect(0, 0, w, h);
-    const BW = Math.min(76, w * 0.105), BH = 34;
-    const px = n => {
-      if (n === 'A') return { x: w * 0.045, y: h * 0.14 };
-      if (n === 'B') return { x: w * 0.045, y: h * 0.52 };
-      if (n === '1') return { x: w * 0.045, y: h * 0.88 };
-      const gd = GATES.find(q => q.id === n);
-      return { x: gd.x * w, y: gd.y * h };
+    const row = (r, kind) => {
+      const el = document.createElement('button');
+      el.className = 'rank';
+      el.type = 'button';
+      el.setAttribute('aria-pressed', 'false');
+      el.dataset.i = r.i;
+      el.innerHTML = `<span>${r.type}<br><span class="nt">${r.nt} · ${r.cls}</span></span>` +
+        `<span class="d ${kind}">${r.delta >= 0 ? '+' : ''}${r.delta.toFixed(0)} Hz</span>` +
+        `<span class="nt">${r.hz.toFixed(0)}</span>`;
+      el.onclick = () => pick(r, el);
+      return el;
     };
+    SCREEN.necessary.forEach(r => $('rankNeed').appendChild(row(r, 'down')));
+    SCREEN.brakes.forEach(r => $('rankBrake').appendChild(row(r, 'up')));
 
-    // wires
-    for (const gd of GATES) {
-      const to = px(gd.id);
-      gd.in.forEach((src, k) => {
-        const from = px(src);
-        const known = src === 'A' || src === 'B' || src === '1' || (src in adder.val);
-        const on = known && inputBit(src);
-        ctx.strokeStyle = on ? 'rgba(102,255,158,0.75)' : 'rgba(34,48,65,0.9)';
-        ctx.lineWidth = on ? 2 : 1;
-        ctx.beginPath();
-        const x0 = from.x + BW/2, y0 = from.y, x1 = to.x - BW/2, y1 = to.y + (k ? 8 : -8);
-        ctx.moveTo(x0, y0);
-        ctx.bezierCurveTo((x0+x1)/2, y0, (x0+x1)/2, y1, x1, y1);
-        ctx.stroke();
-      });
+    $('vBase').textContent = SCREEN.meta.baseline.toFixed(0) + ' Hz';
+    $('gBase').style.width = pct(SCREEN.meta.baseline) + '%';
+
+    // findings, written from the screen output
+    $('findings').innerHTML = SCREEN.findings.map(t => `<li>${t}</li>`).join('');
+
+    // whole-brain confirmation
+    $('wTrials').textContent = SCREEN.whole.trials;
+    $('wholeTable').querySelector('tbody').innerHTML = SCREEN.whole.rows.map(r => {
+      const eats = r.hz > 30;
+      return `<tr><td>${r.label}</td><td class="num">${r.n || '—'}</td>` +
+        `<td class="num ${eats ? 'hi' : 'lo'}">${r.hz.toFixed(0)} Hz</td></tr>`;
+    }).join('');
+
+    // puzzle: cell types, as a real genetic experiment would target them
+    for (const t of SCREEN.puzzleTypes) {
+      const el = document.createElement('button');
+      el.className = 'ptype';
+      el.type = 'button';
+      el.setAttribute('aria-pressed', 'false');
+      el.innerHTML = `${t.type} <span class="n">×${t.idx.length}</span>`;
+      el.onclick = () => {
+        const on = !chosenTypes.has(t.type);
+        on ? chosenTypes.add(t.type) : chosenTypes.delete(t.type);
+        el.setAttribute('aria-pressed', on);
+        runPuzzle();
+      };
+      $('puzzleList').appendChild(el);
     }
-
-    ctx.font = '11px ui-monospace, monospace';
-    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-
-    // inputs
-    for (const [name, lab] of [['A', 'A'], ['B', 'B'], ['1', '1']]) {
-      const p = px(name), on = inputBit(name);
-      ctx.fillStyle = on ? 'rgba(102,255,158,0.18)' : '#141C27';
-      ctx.strokeStyle = on ? '#66FF9E' : '#223041'; ctx.lineWidth = 1;
-      roundRect(ctx, p.x - BW/2, p.y - BH/2, BW, BH, 5); ctx.fill(); ctx.stroke();
-      ctx.fillStyle = on ? '#66FF9E' : '#7C8B9D';
-      ctx.fillText(`${lab} = ${on ? 1 : 0}`, p.x, p.y);
-    }
-
-    // gates
-    for (const gd of GATES) {
-      const p = px(gd.id);
-      const done = gd.id in adder.val;
-      const act = adder.active === gd.id;
-      const on = done && adder.val[gd.id];
-      ctx.fillStyle = act ? 'rgba(79,195,247,0.16)' : on ? 'rgba(102,255,158,0.14)' : '#141C27';
-      ctx.strokeStyle = act ? '#4FC3F7' : on ? '#66FF9E' : '#223041';
-      ctx.lineWidth = act ? 2 : 1;
-      roundRect(ctx, p.x - BW/2, p.y - BH/2, BW, BH, 5); ctx.fill(); ctx.stroke();
-      ctx.fillStyle = act ? '#4FC3F7' : done ? (on ? '#66FF9E' : '#7C8B9D') : '#4E5D6E';
-      ctx.fillText(gd.label, p.x, p.y - 6);
-      ctx.fillStyle = '#7C8B9D';
-      ctx.fillText(act ? '計算中' : done ? `${adder.val[gd.id] ? 1 : 0}  ` +
-        `${adder.val[gd.id + '_hz'].toFixed(0)}Hz` : '—', p.x, p.y + 8);
-    }
-
-    ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
-    ctx.fillStyle = '#4E5D6E';
-    ctx.fillText('各箱 = ハエの脳1個（4,000ニューロン）', 10, h - 10);
+    $('puzzleClear').onclick = () => {
+      chosenTypes.clear();
+      for (const el of $('puzzleList').children) el.setAttribute('aria-pressed', 'false');
+      runPuzzle();
+    };
+    $('puzzleHint').onclick = () => {
+      chosenTypes.clear();
+      for (const t of SCREEN.answer) chosenTypes.add(t);
+      for (const el of $('puzzleList').children) {
+        const name = el.textContent.trim().split(' ')[0];
+        el.setAttribute('aria-pressed', chosenTypes.has(name));
+      }
+      runPuzzle(true);
+    };
+    runPuzzle();
   }
-  function roundRect(ctx, x, y, w, h, r) {
-    ctx.beginPath();
-    ctx.moveTo(x + r, y);
-    ctx.arcTo(x + w, y, x + w, y + h, r);
-    ctx.arcTo(x + w, y + h, x, y + h, r);
-    ctx.arcTo(x, y + h, x, y, r);
-    ctx.arcTo(x, y, x + w, y, r);
-    ctx.closePath();
+
+  function pick(r, el) {
+    for (const e of document.querySelectorAll('.rank')) e.setAttribute('aria-pressed', 'false');
+    el.setAttribute('aria-pressed', 'true');
+    picked = r;
+    $('lesionState').textContent = `${r.type}（${r.nt}）を沈黙させて再計算中 …`;
+    setTimeout(() => {
+      const hz = mn9(false, [r.i]);
+      $('vLes').textContent = hz.toFixed(0) + ' Hz';
+      $('gLes').style.width = pct(hz) + '%';
+      const d = hz - SCREEN.meta.baseline;
+      const verb = d < -8 ? '食欲が落ちました' : d > 8 ? '食欲が強まりました' : 'ほとんど変わりません';
+      $('lesionState').innerHTML =
+        `<b>${r.type}</b>（${r.nt}・${r.cls}）を1個消した結果 — ` +
+        `MN9 ${SCREEN.meta.baseline.toFixed(0)} → <b class="${d < 0 ? 'lo' : 'hi'}">` +
+        `${hz.toFixed(0)}</b> Hz。${verb}`;
+    }, 20);
   }
-  addEventListener('resize', () => { if (gate) drawCircuit(); });
+
+  function runPuzzle(fromHint) {
+    if (!ready) return;
+    const idx = [];
+    for (const t of SCREEN.puzzleTypes) if (chosenTypes.has(t.type)) idx.push(...t.idx);
+    $('puzzleMsg').textContent = '計算中 …';
+    setTimeout(() => {
+      const hz = mn9(true, idx);
+      $('vPoison').textContent = hz.toFixed(0) + ' Hz';
+      $('gPoison').style.width = pct(hz) + '%';
+      const n = idx.length;
+      if (hz > EAT) {
+        $('puzzleMsg').innerHTML = `<span class="hi">成功 — ハエが毒を食べました</span>。` +
+          `${chosenTypes.size}種類・${n}個のニューロンを止めて MN9 ${hz.toFixed(0)} Hz。` +
+          (fromHint ? '' : ' 自力で見つけました。');
+      } else if (!n) {
+        $('puzzleMsg').innerHTML =
+          `健常な脳では MN9 ${hz.toFixed(0)} Hz — 毒入りの餌は拒否されます。`;
+      } else {
+        $('puzzleMsg').innerHTML = `${chosenTypes.size}種類・${n}個を止めて MN9 ` +
+          `${hz.toFixed(0)} Hz。まだ食べません（${EAT} Hz必要）。`;
+      }
+    }, 20);
+  }
 })();
 
 // ------------------------------------------------------------
