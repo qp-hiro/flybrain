@@ -1,26 +1,37 @@
-"""Assemble the self-contained page.
+"""Assemble the self-contained pages.
 
-page_template.html + viz_data.json + subnet.json + flybrain.js -> docs/index.html
+  page_template.html + viz_data.json + subnet.json + screen_page.json + flybrain.js
+      -> docs/index.html
+  page_robot.html    + robotnet.json + flybrain.js
+      -> docs/robot.html
 """
 
-import json
 from pathlib import Path
 
 HERE = Path(__file__).parent
+read = lambda name: (HERE / name).read_text(encoding='utf-8')
 
-template = (HERE / 'page_template.html').read_text(encoding='utf-8')
-pieces = {
-    '/*__VIZ_DATA__*/': (HERE / 'viz_data.json').read_text(encoding='utf-8'),
-    '/*__SUBNET__*/': (HERE / 'subnet.json').read_text(encoding='utf-8'),
-    '/*__SCREEN__*/': (HERE / 'screen_page.json').read_text(encoding='utf-8'),
-    '/*__FLYBRAIN_JS__*/': (HERE / 'flybrain.js').read_text(encoding='utf-8'),
-}
-for token, content in pieces.items():
-    if token not in template:
-        raise SystemExit(f'placeholder {token} missing from page_template.html')
-    template = template.replace(token, content, 1)
+PAGES = [
+    ('page_template.html', 'index.html', {
+        '/*__VIZ_DATA__*/': 'viz_data.json',
+        '/*__SUBNET__*/': 'subnet.json',
+        '/*__SCREEN__*/': 'screen_page.json',
+        '/*__FLYBRAIN_JS__*/': 'flybrain.js',
+    }),
+    ('page_robot.html', 'robot.html', {
+        '/*__ROBOTNET__*/': 'robotnet.json',
+        '/*__BODIES__*/': 'bodies.json',
+        '/*__FLYBRAIN_JS__*/': 'flybrain.js',
+    }),
+]
 
-dst = HERE / 'docs' / 'index.html'
-dst.parent.mkdir(exist_ok=True)
-dst.write_text(template, encoding='utf-8')
-print(f'{dst}: {dst.stat().st_size/1e6:.2f} MB')
+for template, out, pieces in PAGES:
+    page = read(template)
+    for token, source in pieces.items():
+        if token not in page:
+            raise SystemExit(f'placeholder {token} missing from {template}')
+        page = page.replace(token, read(source), 1)
+    dst = HERE / 'docs' / out
+    dst.parent.mkdir(exist_ok=True)
+    dst.write_text(page, encoding='utf-8')
+    print(f'{dst}: {dst.stat().st_size/1e6:.2f} MB')

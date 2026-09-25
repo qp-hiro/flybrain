@@ -1,0 +1,642 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fly Brain Robot — ハエの脳に体を与える</title>
+<style>
+  :root {
+    --bg: #0A0E14; --bg-soft: #0E141C; --panel: #131A24; --line: #223041;
+    --line-soft: #1A2430; --text: #D7E1EC; --muted: #7C8B9D; --dim: #4E5D6E;
+    --spike: #66FF9E; --sugar: #4FC3F7; --bitter: #FFB454; --mn9: #FF5C8A;
+    --mono: ui-monospace, "Cascadia Mono", Consolas, "SF Mono", monospace;
+    --sans: system-ui, -apple-system, "Segoe UI", "Hiragino Kaku Gothic ProN",
+            "Noto Sans JP", "Yu Gothic UI", sans-serif;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: var(--bg); color: var(--text); font-family: var(--sans); line-height: 1.75; }
+  .wrap { max-width: 68ch; margin: 0 auto; padding: 0 20px; }
+  .wide { max-width: 1120px; margin: 0 auto; padding: 0 20px; }
+  section { padding: 56px 0; border-top: 1px solid var(--line-soft); }
+  section:first-of-type { border-top: none; }
+  h1 {
+    font-family: var(--mono); font-size: 15px; font-weight: 600;
+    letter-spacing: 0.15em; color: var(--spike); margin-bottom: 10px;
+  }
+  h2 { font-family: var(--mono); font-size: 13px; font-weight: 600; letter-spacing: 0.18em;
+       color: var(--spike); text-transform: uppercase; margin-bottom: 8px; }
+  h3 { font-size: 20px; font-weight: 600; margin: 32px 0 10px; text-wrap: balance; }
+  .lede { font-size: 17px; margin-bottom: 8px; text-wrap: balance; }
+  p { margin: 13px 0; color: #BECBD9; }
+  a { color: var(--sugar); text-underline-offset: 3px; }
+  a:hover { color: var(--spike); }
+  ul { margin: 13px 0 13px 22px; color: #BECBD9; }
+  li { margin: 6px 0; }
+  code { font-family: var(--mono); font-size: 0.88em; background: var(--panel);
+         border: 1px solid var(--line-soft); border-radius: 3px; padding: 1px 5px; }
+  .note { color: var(--muted); font-size: 14px; }
+  button, select {
+    font-family: var(--mono); font-size: 12px; background: #1A2432; color: var(--text);
+    border: 1px solid var(--line); border-radius: 4px; padding: 6px 13px; cursor: pointer;
+  }
+  button:hover, select:hover { border-color: var(--spike); color: var(--spike); }
+  button:disabled { opacity: .4; cursor: default; }
+  :focus-visible { outline: 2px solid var(--sugar); outline-offset: 2px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 16px; }
+  .card h4 { font-family: var(--mono); font-size: 11px; letter-spacing: .13em; color: var(--muted);
+             text-transform: uppercase; font-weight: 600; margin-bottom: 12px; }
+  .grid { display: grid; gap: 14px; grid-template-columns: minmax(0,1.5fr) minmax(0,1fr); margin-top: 22px; }
+  .span2 { grid-column: 1 / -1; }
+  #arena { width: 100%; height: 460px; display: block; border-radius: 8px;
+           background: #080C12; border: 1px solid var(--line); }
+  .ctl { display: flex; align-items: center; gap: 11px; margin: 11px 0; }
+  .ctl label { font-family: var(--mono); font-size: 12px; width: 8.5em; flex: none; }
+  .ctl output { font-family: var(--mono); font-size: 12px; width: 4.5em; text-align: right;
+                flex: none; font-variant-numeric: tabular-nums; }
+  input[type=range] { flex: 1; min-width: 0; accent-color: var(--sugar); }
+  .seg { display: flex; gap: 0; border: 1px solid var(--line); border-radius: 5px; overflow: hidden; }
+  .seg button { border: none; border-radius: 0; flex: 1; }
+  .seg button[aria-pressed="true"] { background: rgba(102,255,158,.16); color: var(--spike); }
+  .metrics { display: flex; gap: 20px; flex-wrap: wrap; margin-top: 4px; }
+  .metric .v { font-family: var(--mono); font-size: 24px; font-weight: 600;
+               font-variant-numeric: tabular-nums; line-height: 1.1; display: block; }
+  .metric .k { font-family: var(--mono); font-size: 10px; letter-spacing: .12em;
+               color: var(--muted); text-transform: uppercase; }
+  .wheelrow { display: flex; align-items: center; gap: 10px; font-family: var(--mono);
+              font-size: 12px; margin: 6px 0; font-variant-numeric: tabular-nums; }
+  .wheelrow .lab { width: 7em; flex: none; color: var(--muted); }
+  .wbar { flex: 1; height: 12px; background: #141C27; border-radius: 3px; overflow: hidden; min-width: 0; }
+  .wbar > i { display: block; height: 100%; background: var(--spike); }
+  .wbar > i.dnl { background: var(--sugar); }
+  .wbar > i.dnr { background: var(--bitter); }
+  .presets { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 4px; }
+  .presets button { font-size: 11.5px; }
+  .tablewrap { overflow-x: auto; margin: 16px 0; }
+  table { border-collapse: collapse; width: 100%; font-size: 13px; min-width: 560px; }
+  th, td { text-align: left; padding: 8px 14px 8px 0; border-bottom: 1px solid var(--line-soft); }
+  th { font-family: var(--mono); font-size: 10.5px; letter-spacing: .1em; color: var(--muted);
+       text-transform: uppercase; font-weight: 600; }
+  td.num { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+  .hi { color: var(--spike); } .lo { color: var(--mn9); }
+  .dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
+  footer { padding: 40px 0 64px; color: var(--muted); font-size: 13px; border-top: 1px solid var(--line-soft); }
+  @media (max-width: 860px) { .grid { grid-template-columns: 1fr; } }
+</style>
+
+<section>
+  <div class="wrap">
+    <h1>FLY BRAIN ROBOT</h1>
+    <p class="lede">ハエの脳に、ハエとは違う体を与えたら何ができるのか。</p>
+    <p>本物のハエの脳は、<b>下行ニューロン</b>という細い束を通してだけ体に命令を送ります。
+      脳から脚や翅へ向かう出口はそこしかありません。だからロボットに載せるなら、
+      モーターを繋ぐ端子もそこになります。</p>
+    <p>このページでは、<b>2本の触角 → ハエの脳（5,000ニューロン） → 2つの車輪と1つの口</b>
+      という体を組み、体のパラメータを変えながら何ができるようになるかを探索します。
+      センサーとモーターの間に人の書いたロジックは一切ありません。
+      曲がるとしたら、それは配線図がそう繋がっているからです。</p>
+
+    <h3>前提：脳は左右を区別しているか</h3>
+    <p>体を作る前に確かめました。片側の味覚受容器だけを刺激して、
+      左右の下行ニューロンの発火を比べます（全脳12.7万ニューロンでの実測）。</p>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>刺激</th><th>左の下行ニューロン</th><th>右の下行ニューロン</th><th>偏り</th></tr></thead>
+        <tbody>
+          <tr><td>砂糖・左だけ</td><td class="num">1,475 Hz</td><td class="num">1,080 Hz</td>
+              <td class="num hi">左へ −0.154</td></tr>
+          <tr><td>砂糖・右だけ</td><td class="num">2,347 Hz</td><td class="num">3,207 Hz</td>
+              <td class="num hi">右へ +0.155</td></tr>
+          <tr><td>苦味・左だけ</td><td class="num">561 Hz</td><td class="num">700 Hz</td>
+              <td class="num">右へ +0.110</td></tr>
+          <tr><td>苦味・右だけ</td><td class="num">676 Hz</td><td class="num">907 Hz</td>
+              <td class="num">右へ +0.146</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p><b>砂糖については、刺激した側と同じ側の出力が強くなります</b>（符号が反転する）。
+      これが操縦信号になります。一方<b>苦味は左右どちらを刺激しても右に偏り</b>、
+      操縦には使えません。苦味の役目は向きを変えることではなく、
+      <a href="index.html">口を閉じること</a>でした。</p>
+    <p class="note">個々の下行ニューロンはもっと極端で、たとえば DNb05 は
+      左の砂糖では 0 Hz、右の砂糖では 282 Hz。ほぼオンオフのスイッチです。</p>
+  </div>
+</section>
+
+<section>
+  <div class="wide">
+    <h2>Body lab · 体を設計する</h2>
+    <p class="lede">同じ脳のまま、体だけを変えてください。できることが変わります。</p>
+
+    <div id="boot" style="text-align:center; padding:26px 0">
+      <button id="bootbtn">▶ ロボットを起動する</button>
+      <div class="note" style="margin-top:10px" id="bootmsg">
+        5,000ニューロン・535,384シナプスの感覚運動回路をブラウザ内で構築します</div>
+    </div>
+
+    <div id="body" hidden>
+      <div class="grid">
+        <div>
+          <canvas id="arena" aria-label="ロボットが動く実験アリーナ"></canvas>
+          <div class="metrics" style="margin-top:12px">
+            <span class="metric"><span class="v hi" id="mFood">0</span><span class="k">食べた餌</span></span>
+            <span class="metric"><span class="v lo" id="mPoison">0</span><span class="k">毒に触れた</span></span>
+            <span class="metric"><span class="v" id="mTime">0.0</span><span class="k">経過 s</span></span>
+            <span class="metric"><span class="v" style="font-size:18px" id="mRt">—</span><span class="k">realtime</span></span>
+          </div>
+        </div>
+
+        <div>
+          <div class="card">
+            <h4>体の設計 — body</h4>
+            <div style="margin-bottom:12px">
+              <div class="note" style="margin-bottom:6px">車輪への配線</div>
+              <div class="seg" id="wiring">
+                <button data-v="crossed" aria-pressed="true">交差（左脳→右輪）</button>
+                <button data-v="straight" aria-pressed="false">非交差</button>
+              </div>
+            </div>
+            <div style="margin-bottom:12px">
+              <div class="note" style="margin-bottom:6px">車輪の極性</div>
+              <div class="seg" id="polarity">
+                <button data-v="excite" aria-pressed="true">餌で加速</button>
+                <button data-v="inhibit" aria-pressed="false">餌で減速</button>
+              </div>
+            </div>
+            <div class="ctl"><label>触角の間隔</label>
+              <input type="range" id="sSep" min="2" max="30" step="1" value="12">
+              <output id="oSep">12</output></div>
+            <div class="ctl"><label>車輪ゲイン</label>
+              <input type="range" id="sGain" min="0" max="40" step="1" value="16">
+              <output id="oGain">16</output></div>
+            <div class="ctl"><label>基礎前進</label>
+              <input type="range" id="sBase" min="0" max="40" step="1" value="12">
+              <output id="oBase">12</output></div>
+            <div class="ctl"><label>車輪の間隔</label>
+              <input type="range" id="sWheel" min="2" max="24" step="1" value="8">
+              <output id="oWheel">8</output></div>
+            <div style="margin-top:12px">
+              <div class="note" style="margin-bottom:6px">モーターを繋ぐ端子</div>
+              <div class="seg" id="tap">
+                <button data-v="all" aria-pressed="true">下行ニューロン全部</button>
+                <button data-v="select" aria-pressed="false">左右差の大きいものだけ</button>
+              </div>
+            </div>
+            <div class="presets" style="margin-top:14px">
+              <button data-preset="slower">餌で減速する体</button>
+              <button data-preset="faster">餌で加速する体</button>
+              <button data-preset="spinner">その場で回る体</button>
+              <button data-preset="blind">触角が近すぎる体</button>
+            </div>
+          </div>
+
+          <div class="card" style="margin-top:14px">
+            <h4>脳の出力 — descending neurons</h4>
+            <div class="wheelrow"><span class="lab">左の下行N</span>
+              <span class="wbar"><i class="dnl" id="bDnL" style="width:0%"></i></span>
+              <span id="vDnL" style="width:5em;text-align:right">0</span></div>
+            <div class="wheelrow"><span class="lab">右の下行N</span>
+              <span class="wbar"><i class="dnr" id="bDnR" style="width:0%"></i></span>
+              <span id="vDnR" style="width:5em;text-align:right">0</span></div>
+            <div class="wheelrow"><span class="lab">左車輪</span>
+              <span class="wbar"><i id="bWL" style="width:0%"></i></span>
+              <span id="vWL" style="width:5em;text-align:right">0</span></div>
+            <div class="wheelrow"><span class="lab">右車輪</span>
+              <span class="wbar"><i id="bWR" style="width:0%"></i></span>
+              <span id="vWR" style="width:5em;text-align:right">0</span></div>
+            <div class="wheelrow"><span class="lab">口 (MN9)</span>
+              <span class="wbar"><i id="bMn9" style="width:0%;background:var(--mn9)"></i></span>
+              <span id="vMn9" style="width:5em;text-align:right">0</span></div>
+            <p class="note" style="margin-top:10px">口は摂食運動ニューロンMN9が
+              30 Hzを超えたときだけ開きます。毒に触れると閉じます。</p>
+          </div>
+
+          <div class="card" style="margin-top:14px">
+            <h4>操作</h4>
+            <div style="display:flex; gap:8px; flex-wrap:wrap">
+              <button id="btnRun">一時停止</button>
+              <button id="btnReset">アリーナを作り直す</button>
+              <button id="btnRecord">この体を記録する</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card span2">
+          <h4>試した体の比較 — 60秒あたりの成績</h4>
+          <div class="tablewrap">
+            <table id="log">
+              <thead><tr><th>配線</th><th>触角間隔</th><th>ゲイン</th><th>基礎前進</th>
+                <th>端子</th><th>餌</th><th>毒接触</th><th>時間</th></tr></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+          <p class="note">「この体を記録する」で現在の成績が1行追加されます。
+            同じ脳でも、体次第で餌を見つけられたり、見つけられなかったりします。</p>
+        </div>
+      </div>
+
+      <h3>ここまでに試した体（ヘッドレスでの実測）</h3>
+      <p>同じ物理・同じ脳で、体の設計だけを変えて自動で走らせた結果です。
+        指標は「走行中に体が浴びた砂糖濃度の平均」——餌の上に長くいたかどうか。
+        <b>偶然の水準</b>（餌の分布からの期待値）と比べないと意味がないので、
+        その比も出しています。</p>
+      <div class="tablewrap">
+        <table id="bodyTable">
+          <thead><tr><th>体の設計</th><th>内容</th><th>砂糖</th><th>偶然比</th>
+            <th>毒</th><th>走行距離</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <p class="note" id="bodyMeta"></p>
+
+      <h3>結論：餌を探せる体は、まだ作れていません</h3>
+      <p><b>どの体も偶然の水準を超えませんでした。</b>一番良かった体でも
+        <span id="bestRatio">—</span>倍で、操縦を一切しない対照
+        （まっすぐ進むだけ）と大差ありません。差の多くは
+        「その体がどれだけ動いたか」で説明がついてしまいます。</p>
+      <p>理由は動かしてみると見えます。下行ニューロンの発火をそのまま車輪速度に足すと、
+        <b>餌の上で両輪とも速くなって通り過ぎてしまいます</b>。本物のハエは逆で、
+        餌に触れると止まってその場を探ります。そこで「餌で減速」に切り替えると、
+        今度は<b>何かを感じた瞬間に止まってしまい</b>、餌が近くになければ一生動きません。
+        加速でも減速でもうまくいかない——<b>速度をどう変えるかではなく、
+        いつ向きを変えるかの問題</b>だということです。</p>
+      <p>そしておそらく、これは回路の選び方の問題でもあります。ここで使っているのは
+        <b>味覚</b>から下行ニューロンへの経路です。味覚は口が触れて初めて働く接触感覚で、
+        本物のハエが遠くの餌を見つけるのに使っているのは<b>嗅覚と視覚</b>です。
+        接触感覚に長距離のナビゲーションをさせようとしている、という筋の悪さがあります。</p>
+
+      <h3>体を設計してみてください</h3>
+      <p>上のパネルは同じ物理で動いています。<b>偶然比1.0を安定して超える体</b>が作れたら、
+        それはこの味覚回路から操縦信号を引き出せたということです。
+        「この体を記録する」で成績が残るので、上の表と比べてみてください。</p>
+      <ul>
+        <li><b>触角の間隔</b>を詰めると、左右の濃度差が消えて脳に届く信号の差がなくなります。
+          体が勾配を作れなければ、脳がどれだけ精密でも使えません。</li>
+        <li><b>端子を「左右差の大きいものだけ」</b>にすると信号がはっきりします。
+          322個の下行ニューロンを平均すると差が薄まりますが、DNb05のような片側専用の
+          ニューロンだけを使えば別です。実機なら電極を挿す場所の選択にあたります。</li>
+        <li><b>基礎前進と車輪ゲインの比</b>が旋回半径を決めます。旋回が強すぎると
+          その場で回り、弱すぎると勾配を無視してまっすぐ進みます。</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <h2>What this is not</h2>
+    <p>ハエが学習しているわけではありません。シナプスの重みは配線図のまま固定で、
+      このページの間に一切変化しません。ロボットがうまく動くとしたら、
+      それは<b>すでに脳に配線されている反応</b>を体が使えているということです。</p>
+    <p>逆に、うまく動かない体も同じくらい意味があります。同じ脳が使えるかどうかは
+      体の側で決まる、というのがこのページで見えることです。</p>
+    <p class="note">脳の中身・モデル・検証については
+      <a href="index.html">メインページ</a>を参照してください。
+      コードは <a href="https://github.com/qp-hiro/flybrain">github.com/qp-hiro/flybrain</a>。</p>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    Fly Brain Robot — FlyWireコネクトームの感覚運動回路に体を与える<br>
+    <a href="index.html">← メインページ</a> ·
+    <a href="https://github.com/qp-hiro/flybrain">github.com/qp-hiro/flybrain</a>
+  </div>
+</footer>
+
+<script>
+/*__FLYBRAIN_JS__*/
+const ROBOTNET = /*__ROBOTNET__*/;
+const BODIES = /*__BODIES__*/;
+
+// the measured comparison table -- produced by sim_bodies.js + chance_level.js
+(() => {
+  const $ = id => document.getElementById(id);
+  const ch = BODIES.chance;
+  const rows = BODIES.results.slice().sort((a, b) => b.onSugar - a.onSugar);
+  $('bodyTable').querySelector('tbody').innerHTML = rows.map(r => {
+    const ratio = r.onSugar / ch.onSugar;
+    const cls = ratio >= 1 ? 'hi' : '';
+    return `<tr><td>${r.name}</td><td class="note">${r.note}</td>` +
+      `<td class="num">${r.onSugar.toFixed(3)}</td>` +
+      `<td class="num ${cls}">${ratio.toFixed(2)}×</td>` +
+      `<td class="num">${r.onPoison.toFixed(3)}</td>` +
+      `<td class="num">${r.dist.toFixed(2)}</td></tr>`;
+  }).join('') +
+    `<tr><td colspan="2"><b>偶然の水準</b></td>` +
+    `<td class="num"><b>${ch.onSugar.toFixed(3)}</b></td><td class="num">1.00×</td>` +
+    `<td class="num">${ch.onPoison.toFixed(3)}</td><td class="num">—</td></tr>`;
+  $('bodyMeta').textContent =
+    `各行 ${BODIES.seconds} 秒 × ${BODIES.worlds} 通りのアリーナの平均。` +
+    `「左右差の大きい端子」は左 ${BODIES.tap.left} 個・右 ${BODIES.tap.right} 個の` +
+    `下行ニューロン（全 322 個中）。偶然の水準は同じアリーナ内のランダムな位置での期待値。`;
+  $('bestRatio').textContent = (rows[0].onSugar / ch.onSugar).toFixed(2);
+})();
+
+(() => {
+  const $ = id => document.getElementById(id);
+  let net = null, brain = null, running = false;
+
+  // --- body parameters (everything here is the robot, not the brain) ---
+  const body = {
+    wiring: 'crossed',   // crossed: left brain -> right wheel
+    sep: 12,             // antenna separation, % of arena
+    gain: 16,            // how hard descending activity drives the wheels
+    base: 12,            // constant forward drive built into the chassis
+    wheel: 8,            // wheelbase, % of arena
+    tap: 'all',          // which descending neurons the motors listen to
+    polarity: 'excite',  // does descending activity speed a wheel up or slow it?
+  };
+  const PRESETS = {
+    slower:  { wiring: 'crossed',  sep: 18, gain: 20, base: 26, wheel: 8, tap: 'select',
+               polarity: 'inhibit' },
+    faster:  { wiring: 'crossed',  sep: 18, gain: 16, base: 12, wheel: 8, tap: 'select',
+               polarity: 'excite' },
+    spinner: { wiring: 'crossed',  sep: 18, gain: 38, base: 2,  wheel: 3, tap: 'select',
+               polarity: 'excite' },
+    blind:   { wiring: 'crossed',  sep: 2,  gain: 20, base: 26, wheel: 8, tap: 'all',
+               polarity: 'inhibit' },
+  };
+
+  // --- world ---
+  const ARENA = 1;                 // unit square, wraps around
+  let robot, patches, trail, food, poisonHits, elapsed;
+
+  function makeWorld() {
+    robot = { x: .5, y: .5, th: Math.random() * 6.283 };
+    trail = [];
+    food = 0; poisonHits = 0; elapsed = 0;
+    patches = [];
+    for (let i = 0; i < 7; i++) patches.push(mkPatch('sugar'));
+    for (let i = 0; i < 4; i++) patches.push(mkPatch('poison'));
+  }
+  function mkPatch(kind) {
+    return { kind, x: .08 + Math.random() * .84, y: .08 + Math.random() * .84,
+             r: kind === 'sugar' ? .085 + Math.random() * .04 : .075 + Math.random() * .03,
+             amount: 1 };
+  }
+  const wrap = v => v - Math.floor(v);
+  function dwrap(a, b) {              // shortest signed distance on a torus
+    let d = a - b;
+    if (d > .5) d -= 1; else if (d < -.5) d += 1;
+    return d;
+  }
+  // concentration of one taste at a point
+  function sense(x, y, kind) {
+    let c = 0;
+    for (const p of patches) {
+      if (p.kind !== kind || p.amount <= 0) continue;
+      const dx = dwrap(x, p.x), dy = dwrap(y, p.y);
+      const d = Math.hypot(dx, dy);
+      if (d < p.r * 2.2) c = Math.max(c, p.amount * Math.exp(-1.4 * (d / p.r) ** 2));
+    }
+    return Math.min(1, c);
+  }
+
+  // --- wiring the UI ---
+  $('bootbtn').onclick = () => {
+    $('bootbtn').disabled = true;
+    $('bootmsg').textContent = '回路を構築中 …';
+    setTimeout(() => {
+      net = FlyBrain.decodeNet(ROBOTNET);
+      brain = new FlyBrain.Brain(net);
+      pickTaps();
+      makeWorld();
+      $('boot').hidden = true;
+      $('body').hidden = false;
+      running = true;
+      lastT = performance.now();
+      requestAnimationFrame(loop);
+    }, 30);
+  };
+
+  // the "selective" motor tap: the descending neurons that actually differ
+  // between a left and a right taste, measured here, in the page
+  let tapL = null, tapR = null;
+  function pickTaps() {
+    const G = net.groups;
+    const probe = (grp) => {
+      const b = new FlyBrain.Brain(net, 7);
+      b.setStim(G[grp], 150);
+      b.runSteps(1500);
+      b.spikes.fill(0);
+      b.runSteps(3000);
+      return b.spikes;
+    };
+    const sl = probe('sugarL'), sr = probe('sugarR');
+    const score = i => (sr[i] - sl[i]);
+    tapL = G.dnL.filter(i => score(i) < -2);
+    tapR = G.dnR.filter(i => score(i) > 2);
+    if (tapL.length < 3) tapL = G.dnL.slice();
+    if (tapR.length < 3) tapR = G.dnR.slice();
+  }
+
+  for (const id of ['wiring', 'tap', 'polarity']) {
+    $(id).onclick = e => {
+      const b = e.target.closest('button');
+      if (!b) return;
+      body[id] = b.dataset.v;
+      for (const x of $(id).children) x.setAttribute('aria-pressed', x === b);
+    };
+  }
+  const bind = (slider, out, key) => {
+    $(slider).oninput = e => { body[key] = +e.target.value; $(out).textContent = e.target.value; };
+  };
+  bind('sSep', 'oSep', 'sep');
+  bind('sGain', 'oGain', 'gain');
+  bind('sBase', 'oBase', 'base');
+  bind('sWheel', 'oWheel', 'wheel');
+
+  function applyPreset(name) {
+    Object.assign(body, PRESETS[name]);
+    $('sSep').value = body.sep; $('oSep').textContent = body.sep;
+    $('sGain').value = body.gain; $('oGain').textContent = body.gain;
+    $('sBase').value = body.base; $('oBase').textContent = body.base;
+    $('sWheel').value = body.wheel; $('oWheel').textContent = body.wheel;
+    for (const id of ['wiring', 'tap', 'polarity'])
+      for (const x of $(id).children) x.setAttribute('aria-pressed', x.dataset.v === body[id]);
+    makeWorld();
+  }
+  for (const b of document.querySelectorAll('[data-preset]'))
+    b.onclick = () => applyPreset(b.dataset.preset);
+
+  $('btnRun').onclick = () => {
+    running = !running;
+    $('btnRun').textContent = running ? '一時停止' : '再開';
+    lastT = performance.now();
+  };
+  $('btnReset').onclick = makeWorld;
+  $('btnRecord').onclick = () => {
+    const tr = document.createElement('tr');
+    tr.innerHTML =
+      `<td>${body.wiring === 'crossed' ? '交差' : '非交差'}</td>` +
+      `<td class="num">${body.sep}</td><td class="num">${body.gain}</td>` +
+      `<td class="num">${body.base}</td>` +
+      `<td>${body.tap === 'all' ? '全部' : '選別'}</td>` +
+      `<td class="num hi">${food.toFixed(1)}</td>` +
+      `<td class="num lo">${poisonHits}</td>` +
+      `<td class="num">${elapsed.toFixed(0)}s</td>`;
+    $('log').querySelector('tbody').prepend(tr);
+  };
+
+  // --- the loop ---
+  let lastT = 0, budget = 120, rtEwma = 0;
+  let dnLHz = 0, dnRHz = 0, mn9Hz = 0;
+
+  function loop(now) {
+    requestAnimationFrame(loop);
+    const dt = Math.min(.05, (now - lastT) / 1000);
+    lastT = now;
+    if (!brain) return;
+    if (running) { step(dt); elapsed += dt; }
+    draw();
+  }
+
+  function step(dt) {
+    const G = net.groups;
+    // 1. the body decides what each antenna tastes
+    const half = body.sep / 200;
+    const cs = Math.cos(robot.th), sn = Math.sin(robot.th);
+    const ax = robot.x + (-sn) * half, ay = robot.y + cs * half;   // left antenna
+    const bx = robot.x + sn * half, by = robot.y - cs * half;      // right antenna
+    const sugarL = sense(wrap(ax), wrap(ay), 'sugar');
+    const sugarR = sense(wrap(bx), wrap(by), 'sugar');
+    const bitL = sense(wrap(ax), wrap(ay), 'poison');
+    const bitR = sense(wrap(bx), wrap(by), 'poison');
+
+    brain.setStim(G.sugarL, sugarL * 200);
+    brain.setStim(G.sugarR, sugarR * 200);
+    brain.setStim(G.bitterL, bitL * 200);
+    brain.setStim(G.bitterR, bitR * 200);
+
+    // 2. the brain thinks, in real time
+    const want = Math.round(dt * 10000);
+    const steps = Math.min(want, budget);
+    const t0 = performance.now();
+    brain.runSteps(steps);
+    const cost = performance.now() - t0;
+    if (cost > 11 && budget > 20) budget -= 10; else if (cost < 7 && budget < 400) budget += 10;
+    rtEwma = rtEwma ? rtEwma * .9 + (steps / Math.max(want, 1)) * .1 : 1;
+
+    const simSec = steps * 1e-4 || 1e-9;
+    const setL = body.tap === 'all' ? G.dnL : tapL;
+    const setR = body.tap === 'all' ? G.dnR : tapR;
+    const sum = arr => arr.reduce((a, i) => a + brain.spikes[i], 0);
+    const rawL = sum(setL) / simSec / Math.max(1, setL.length);
+    const rawR = sum(setR) / simSec / Math.max(1, setR.length);
+    const mn9 = brain.spikes[G.mn9[0]] / simSec;
+    brain.spikes.fill(0);
+    dnLHz = dnLHz * .75 + rawL * .25;
+    dnRHz = dnRHz * .75 + rawR * .25;
+    mn9Hz = mn9Hz * .75 + mn9 * .25;
+
+    // 3. the body turns motor commands into movement
+    const k = body.gain / 1600, b0 = body.base / 900;
+    const sign = body.polarity === 'inhibit' ? -1 : 1;
+    const wl = Math.max(0, b0 + sign * k * (body.wiring === 'crossed' ? dnRHz : dnLHz));
+    const wr = Math.max(0, b0 + sign * k * (body.wiring === 'crossed' ? dnLHz : dnRHz));
+    const v = (wl + wr) / 2;
+    const omega = (wr - wl) / Math.max(.02, body.wheel / 100);
+    robot.th += omega * dt;
+    robot.x = wrap(robot.x + Math.cos(robot.th) * v * dt);
+    robot.y = wrap(robot.y + Math.sin(robot.th) * v * dt);
+    robot.wl = wl; robot.wr = wr;
+
+    trail.push([robot.x, robot.y]);
+    if (trail.length > 900) trail.shift();
+
+    // 4. the mouth: MN9 decides, exactly as on the main page
+    for (const p of patches) {
+      if (p.amount <= 0) continue;
+      const d = Math.hypot(dwrap(robot.x, p.x), dwrap(robot.y, p.y));
+      if (d > p.r * .8) continue;
+      if (p.kind === 'poison') { poisonHits += dt; continue; }
+      if (mn9Hz > 30) {
+        const take = Math.min(p.amount, dt * .6);
+        p.amount -= take; food += take * 10;
+        if (p.amount <= 0) Object.assign(p, mkPatch('sugar'));
+      }
+    }
+
+    // readouts
+    const bar = (id, val, max) => $(id).style.width =
+      Math.max(0, Math.min(100, val / max * 100)) + '%';
+    $('vDnL').textContent = dnLHz.toFixed(0); bar('bDnL', dnLHz, 60);
+    $('vDnR').textContent = dnRHz.toFixed(0); bar('bDnR', dnRHz, 60);
+    $('vWL').textContent = (wl * 100).toFixed(1); bar('bWL', wl, .35);
+    $('vWR').textContent = (wr * 100).toFixed(1); bar('bWR', wr, .35);
+    $('vMn9').textContent = mn9Hz.toFixed(0); bar('bMn9', mn9Hz, 150);
+    $('mFood').textContent = food.toFixed(1);
+    $('mPoison').textContent = poisonHits.toFixed(1);
+    $('mTime').textContent = elapsed.toFixed(1);
+    $('mRt').textContent = 'x' + rtEwma.toFixed(2);
+  }
+
+  function draw() {
+    const c = $('arena'), w = c.clientWidth, h = c.clientHeight;
+    if (!w) return;
+    const dpr = devicePixelRatio || 1;
+    if (c.width !== Math.round(w * dpr)) { c.width = w * dpr; c.height = h * dpr; }
+    const ctx = c.getContext('2d');
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.fillStyle = '#080C12'; ctx.fillRect(0, 0, w, h);
+    const S = Math.min(w, h), ox = (w - S) / 2, oy = (h - S) / 2;
+    const px = (x, y) => [ox + x * S, oy + y * S];
+
+    ctx.strokeStyle = '#121A24'; ctx.lineWidth = 1;
+    for (let i = 1; i < 6; i++) {
+      ctx.beginPath(); ctx.moveTo(ox + S*i/6, oy); ctx.lineTo(ox + S*i/6, oy + S); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(ox, oy + S*i/6); ctx.lineTo(ox + S, oy + S*i/6); ctx.stroke();
+    }
+    ctx.strokeStyle = '#223041'; ctx.strokeRect(ox, oy, S, S);
+
+    for (const p of patches) {
+      if (p.amount <= 0) continue;
+      const [x, y] = px(p.x, p.y), r = p.r * S * p.amount;
+      const col = p.kind === 'sugar' ? '79,195,247' : '255,180,84';
+      const g = ctx.createRadialGradient(x, y, 0, x, y, r);
+      g.addColorStop(0, `rgba(${col},.8)`); g.addColorStop(1, `rgba(${col},0)`);
+      ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, r, 0, 7); ctx.fill();
+      if (p.kind === 'poison') {
+        ctx.strokeStyle = `rgba(${col},.5)`; ctx.setLineDash([3, 3]);
+        ctx.beginPath(); ctx.arc(x, y, r * .55, 0, 7); ctx.stroke(); ctx.setLineDash([]);
+      }
+    }
+
+    ctx.strokeStyle = 'rgba(102,255,158,.32)'; ctx.lineWidth = 1.2;
+    ctx.beginPath();
+    let prev = null;
+    for (const [tx, ty] of trail) {
+      const [x, y] = px(tx, ty);
+      if (prev && (Math.abs(tx - prev[0]) > .5 || Math.abs(ty - prev[1]) > .5)) ctx.moveTo(x, y);
+      else prev ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
+      prev = [tx, ty];
+    }
+    ctx.stroke();
+
+    // the robot: chassis, two antennae, two wheels
+    const [rx, ry] = px(robot.x, robot.y);
+    const cs = Math.cos(robot.th), sn = Math.sin(robot.th);
+    const half = body.sep / 200 * S, wb = body.wheel / 100 * S / 2;
+    ctx.strokeStyle = '#4FC3F7'; ctx.lineWidth = 1.4;
+    for (const s of [1, -1]) {
+      ctx.beginPath(); ctx.moveTo(rx, ry);
+      ctx.lineTo(rx - sn * half * s + cs * 6, ry + cs * half * s + sn * 6);
+      ctx.stroke();
+      ctx.fillStyle = '#4FC3F7';
+      ctx.beginPath();
+      ctx.arc(rx - sn * half * s + cs * 6, ry + cs * half * s + sn * 6, 2.6, 0, 7);
+      ctx.fill();
+    }
+    ctx.strokeStyle = '#D7E1EC'; ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(rx - sn * wb, ry + cs * wb);
+    ctx.lineTo(rx + sn * wb, ry - cs * wb);
+    ctx.stroke();
+    ctx.fillStyle = mn9Hz > 30 ? '#FF5C8A' : '#D7E1EC';
+    ctx.beginPath(); ctx.arc(rx, ry, 5.5, 0, 7); ctx.fill();
+    ctx.strokeStyle = 'rgba(215,225,236,.6)'; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(rx, ry); ctx.lineTo(rx + cs * 13, ry + sn * 13); ctx.stroke();
+
+    ctx.font = '11px ui-monospace, monospace';
+    ctx.fillStyle = '#4E5D6E';
+    ctx.fillText('青 = 餌（砂糖）  橙 = 毒（苦味）  端は反対側につながっています', ox + 8, oy + S - 10);
+  }
+})();
+</script>
